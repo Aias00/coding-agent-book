@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 12 章 Pi：工具钩子、并发模式与编辑前置条件 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/12-pi-tools.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="12-pi-tools" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html" aria-current="page">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-12-章-pi工具钩子并发模式与编辑前置条件" class="level1">
+<h1>第 12 章 Pi：工具钩子、并发模式与编辑前置条件</h1>
+<section id="从校验到结果终结" class="level2">
+<h2>从校验到结果终结</h2>
+<p>Pi 的工具管线查找工具，准备参数，按 schema 验证，执行 <code>beforeToolCall</code>，运行工具，再执行结果后处理。未知工具、校验错误与被阻止的调用能够形成错误结果供模型观察，而不是让整个任务无条件崩溃。嵌套工具调用也可以走共享的 <code>runToolCall</code> 路径，让相同钩子继续生效。<a href="26-sources.html#evidence-p01">P01</a><a href="26-sources.html#evidence-p02">P02</a></p>
+<p>这对 code mode 或工具桥接尤为重要。如果外层调用经过权限检查，内层工具却直接调用实现函数，那么桥接就可能绕过原有策略。共享执行管线把策略检查留在真正执行每个工具的位置。</p>
+</section>
+<section id="并行模式的两个顺序" class="level2">
+<h2>并行模式的两个顺序</h2>
+<p>低层循环支持 sequential 与 parallel 两种批次模式。parallel 模式依次准备调用，获准执行的工具体并发运行；工具结束事件可以按照真实完成顺序发出，工具结果消息随后按助手源顺序形成。<a href="26-sources.html#evidence-p01">P01</a><a href="26-sources.html#evidence-p02">P02</a></p>
+<p>因此你可能先看到第二个搜索工具完成，但最终模型历史仍把第一个调用结果排在前面。完成通知顺序服务实时性，消息顺序服务稳定上下文。把二者分开，才能准确解释界面与重放的差异。</p>
+<p>与 DeepSeek Harness 的有界滚动池相比，Pi 这里的低层并行批次并不是同一类调度器。它不应该被直接描述为内建资源感知计划器。若应用需要针对服务限流或文件锁做更多控制，应在工具实现或更高层加入相应机制。</p>
+</section>
+<section id="输出截断为什么会阻止工具执行" class="level2">
+<h2>输出截断为什么会阻止工具执行</h2>
+<p>模型达到输出长度上限时，工具参数可能只生成了一部分。即便某个 JSON 修复器碰巧把残片解释为可校验结构，它也不一定是模型原本要表达的完整行动。该循环在 stop reason 为 <code>length</code> 时，对这条消息里的工具调用统一生成错误，不执行这些可能被截断的参数。<a href="26-sources.html#evidence-p01">P01</a></p>
+<p>这是一个很好的防守例子：语法有效不等于行动完整。假设模型原本要表达三个互相配套的编辑，只生成第一项就被截断，执行第一项可能让文件暂时处于错误状态。保守拒绝让模型有机会重新发出完整调用。</p>
+</section>
+<section id="精确编辑如何降低误改" class="level2">
+<h2>精确编辑如何降低误改</h2>
+<p>Pi 编辑工具接收一个文件内的多处替换，每处 <code>oldText</code> 需要匹配原文件中的唯一、互不重叠区域。所有替换对同一份原始内容匹配，而不是前一条修改后的内容。工具还处理换行等文本细节，并产生可显示的 diff 与 patch。<a href="26-sources.html#evidence-p07">P07</a></p>
+<p>修复案例里，如果用户在模型读取后已经修改了目标函数，旧文本不再匹配，工具应停止并要求重新读取。这个机制比按绝对行号写入更能表达前置条件，但不能防止所有并发修改，也不能代替多文件事务。</p>
+</section>
+<section id="同文件串行不等于全局串行" class="level2">
+<h2>同文件串行不等于全局串行</h2>
+<p><code>file-mutation-queue</code> 根据路径及可取得的 realpath 建立文件级队列。同一文件的变更依次执行，不同文件仍可并行；注册队列负责协调队列登记。<a href="26-sources.html#evidence-p08">P08</a></p>
+<p>这种局部串行比把全部写操作用一个全局锁包住更有并发空间。不过它是进程内协调：外部编辑器、其他进程或文件系统路径变化不会自动服从这份队列。它也不能保证“修改 A、修改 B、运行测试”三步成为一个原子操作。</p>
+</section>
+<section id="工具结果中的两种信息" class="level2">
+<h2>工具结果中的两种信息</h2>
+<p>模型需要的是可据以决定下一步的结果内容；界面还需要 diff、位置和结构化细节。后处理若改了文本内容，却没有同步更新关联结构化内容，可能使两种消费者看到互相矛盾的事实。Pi 类型说明明确了结果字段覆盖的语义，提醒扩展作者不能假设深度合并。<a href="26-sources.html#evidence-p02">P02</a></p>
+<p>练习：一个后置钩子把错误结果改成成功文本，却保留 <code>isError: true</code>，会怎样？检查要点是不同消费者可能分别按文本和标志判断，产生冲突。工具结果应该作为一致的终结对象处理，而不是任意拼接几段字符串。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="11-pi-layers.html" rel="prev"><small>上一章</small>第 11 章 Pi：小循环内核与完整编程应用</a><a href="13-pi-session.html" rel="next"><small>下一章</small>第 13 章 Pi：会话树、压缩与项目可信度</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

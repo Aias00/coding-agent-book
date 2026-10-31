@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>附录 C 构建、验证与修订说明 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/27-colophon.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="27-colophon" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html" aria-current="page">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="附录-c-构建验证与修订说明" class="level1">
+<h1>附录 C 构建、验证与修订说明</h1>
+<section id="一套章节两种阅读载体" class="level2">
+<h2>一套章节，两种阅读载体</h2>
+<p>本书由 <code>chapters/</code> 中的 Markdown 原稿构建。<code>scripts/build.py</code> 生成合订原稿、EPUB 3 和逐章静态网页。网页正文直接由 Pandoc 输出，无需客户端 JavaScript 才能阅读；脚本只增强搜索、主题、字号与阅读位置。</p>
+<p>在已安装 Python 3.9 或更高版本及 Pandoc 的环境中运行：</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/build.py</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/check.py</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> unittest discover <span class="at">-s</span> labs <span class="at">-v</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">node</span> <span class="at">--check</span> web/reader.js</span></code></pre></div>
+<p>不需要四个上游仓库也能重建书籍。<code>research/sources.json</code> 已保存研究快照身份；只有重新采集证据时才需运行 <code>scripts/snapshot.py --source-root /your/source/root</code>。不要为了重建 EPUB 无意中把研究对象更新成另一个版本。</p>
+</section>
+<section id="验证分别证明什么" class="level2">
+<h2>验证分别证明什么</h2>
+<p>出版结构检查验证 EPUB 的文件封装、包清单、阅读顺序、XML 和内部引用，并检查网页链接、资源与证据编号。EPUBCheck 若完成运行，结果另存验证报告。结构有效不保证每一台阅读器的字体和排版完全相同，也不代替编辑校对。</p>
+<p>实验测试验证本仓库教学程序的执行和恢复，不代表已经运行四个上游产品测试。源码索引校验验证文件身份与定位，Claude Code 的 map 对照验证本地提取一致性，不代表材料来源认证。在线发布状态则由 GitHub Pages 部署和访问检查独立确认。</p>
+</section>
+<section id="本版的内容边界" class="level2">
+<h2>本版的内容边界</h2>
+<p>本书没有公布真实模型性能排名，没有把项目中的配置默认值写成永久承诺，没有将可见特性分支当作所有用户都可用的功能。代码引用链接固定到本地 Git 提交；官方资料只用来补充术语，访问日期与源码快照日期分别说明。</p>
+<p>原始发布包、压缩包、凭据、上游工作区修改和既有书稿没有并入本书仓库。许可证说明区分原创分析、实验代码及被分析项目，完整出处见 <code>NOTICE.md</code>。</p>
+</section>
+<section id="修订方法" class="level2">
+<h2>修订方法</h2>
+<p>如果升级上游，先重新采集快照，再比较核心循环、工具类型、请求准备、取消和持久格式。更新受影响章节和验证，而非只替换提交号。若新版本不再支持某条路径，应明确记录失效范围。</p>
+<p>本版为 1.0.0，研究日期 2026-10-30。建议反馈包含章节名、证据编号、所用提交和具体不一致现象，这样修订可以追踪到实际机制。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="26-sources.html" rel="prev"><small>上一章</small>附录 B 源码快照与证据索引</a><span></span></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

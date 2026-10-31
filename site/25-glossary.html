@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>附录 A 术语、阅读地图与自检答案 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/25-glossary.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="25-glossary" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html" aria-current="page">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="附录-a-术语阅读地图与自检答案" class="level1">
+<h1>附录 A 术语、阅读地图与自检答案</h1>
+<section id="术语表" class="level2">
+<h2>术语表</h2>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义与注意点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Harness</td>
+<td>模型周围的执行系统，负责上下文、工具与运行状态</td>
+</tr>
+<tr>
+<td>Agent loop</td>
+<td>在模型请求、工具结果和继续决策之间循环</td>
+</tr>
+<tr>
+<td>Session / thread</td>
+<td>长期会话容器；两个项目同名类型不一定兼容</td>
+</tr>
+<tr>
+<td>Turn</td>
+<td>必须结合项目定义理解，可能指用户回合或单次助手响应阶段</td>
+</tr>
+<tr>
+<td>Step</td>
+<td>本书通常指一次模型请求及其工具处理</td>
+</tr>
+<tr>
+<td>Attempt</td>
+<td>一次实际尝试，失败尝试不一定进入有效模型历史</td>
+</tr>
+<tr>
+<td>Tool schema</td>
+<td>模型参数的结构约束，不等于业务正确或执行授权</td>
+</tr>
+<tr>
+<td>Provider / adapter</td>
+<td>把统一请求与供应商协议连接起来的实现</td>
+</tr>
+<tr>
+<td>Projection</td>
+<td>从持久事实推导某个消费者需要的状态</td>
+</tr>
+<tr>
+<td>Compaction</td>
+<td>缩减模型工作上下文，通常需要摘要与边界元数据</td>
+</tr>
+<tr>
+<td>Checkpoint</td>
+<td>执行器恢复状态的检查点，不能用自然语言摘要替代</td>
+</tr>
+<tr>
+<td>Replay</td>
+<td>从已有记录重建或重执行；两种含义必须区分</td>
+</tr>
+<tr>
+<td>Idempotency</td>
+<td>重复相同业务请求不重复产生效果，需要实际服务参与</td>
+</tr>
+<tr>
+<td>Approval</td>
+<td>对特定行动和权限范围的允许，不是无限授权</td>
+</tr>
+<tr>
+<td>Sandbox</td>
+<td>对真实资源访问施加限制的执行环境机制</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>注册或路由的逻辑范围，不自动形成操作系统安全隔离</td>
+</tr>
+<tr>
+<td>Disposer</td>
+<td>撤销注册或释放资源的生命周期操作</td>
+</tr>
+<tr>
+<td>Steering</td>
+<td>在当前工作过程中进入的纠正或补充输入</td>
+</tr>
+<tr>
+<td>Follow-up</td>
+<td>按框架规则排在当前工作之后处理的输入</td>
+</tr>
+<tr>
+<td>Outcome unknown</td>
+<td>行动可能发生但结果不能确认，需要核验</td>
+</tr>
+<tr>
+<td>Code mode / PTC</td>
+<td>用程序组织工具调用；底层工具仍需要授权和结果管理</td>
+</tr>
+<tr>
+<td>Worktree</td>
+<td>独立工作目录机制，不等同于完整运行环境隔离</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="四条源码阅读路线" class="level2">
+<h2>四条源码阅读路线</h2>
+<p>Codex：从回合执行进入步骤上下文，再看工具计划、路由、公共编排和并发运行时，最后看进程管理、压缩与历史重建。阅读时区分 core 内部状态、rollout 记录及 app-server 协议。<a href="26-sources.html#evidence-c01">C01</a><a href="26-sources.html#evidence-c02">C02</a><a href="26-sources.html#evidence-c11">C11</a><a href="26-sources.html#evidence-c03">C03</a><a href="26-sources.html#evidence-c05">C05</a><a href="26-sources.html#evidence-c06">C06</a><a href="26-sources.html#evidence-c07">C07</a><a href="26-sources.html#evidence-c09">C09</a><a href="26-sources.html#evidence-c15">C15</a></p>
+<p>DeepSeek Harness：先读架构文档和 Cordis primer，再追踪 agent 的请求准备、工具调度、流结算与 session 投影，之后看代际迁移和子代理 provider。服务定义、provider、consumer 必须一起确认。<a href="26-sources.html#evidence-d01">D01</a><a href="26-sources.html#evidence-d16">D16</a><a href="26-sources.html#evidence-d02">D02</a><a href="26-sources.html#evidence-d03">D03</a><a href="26-sources.html#evidence-d04">D04</a><a href="26-sources.html#evidence-d07">D07</a><a href="26-sources.html#evidence-d11">D11</a><a href="26-sources.html#evidence-d13">D13</a></p>
+<p>Pi：先读 agent-core 类型与循环，再看 AgentSession、SessionManager、编辑工具和扩展 runner；需要持久任务时另读 durable。不要将 durable 的 replay 政策归给普通内存循环。<a href="26-sources.html#evidence-p02">P02</a><a href="26-sources.html#evidence-p01">P01</a><a href="26-sources.html#evidence-p04">P04</a><a href="26-sources.html#evidence-p05">P05</a><a href="26-sources.html#evidence-p07">P07</a><a href="26-sources.html#evidence-p10">P10</a><a href="26-sources.html#evidence-p12">P12</a></p>
+<p>Claude Code：先核对包版本与 map，再读 query、Tool、工具执行器、权限管线、压缩与会话记录链。遇到特性条件时，把“有实现”与“当前启用”分开记录。<a href="26-sources.html#evidence-a01">A01</a><a href="26-sources.html#evidence-a02">A02</a><a href="26-sources.html#evidence-a03">A03</a><a href="26-sources.html#evidence-a04">A04</a><a href="26-sources.html#evidence-a05">A05</a><a href="26-sources.html#evidence-a06">A06</a><a href="26-sources.html#evidence-a07">A07</a><a href="26-sources.html#evidence-a10">A10</a></p>
+</section>
+<section id="十个自检问题与答案" class="level2">
+<h2>十个自检问题与答案</h2>
+<ol type="1">
+<li>工具参数通过 schema，是否可以直接执行？不能，还需要语义校验、授权和环境限制。</li>
+<li>模型生成了助手文字，用户任务是否结束？不一定，还可能有工具、排队输入和停止钩子。</li>
+<li>工具结果按顺序提交，外部副作用是否也按顺序发生？不一定，并发执行与提交是不同时间线。</li>
+<li>点击停止能否证明没有写入？不能，需要看派发位置、工具取消语义与实际结果。</li>
+<li>日志有 fsync，是否获得外部动作恰好一次？不能，本地日志不控制远程服务事务。</li>
+<li>会话分支回退是否回滚代码？不能自动推导，工作区变更需要独立机制。</li>
+<li>压缩摘要能否替代执行检查点？不能，摘要服务模型理解，检查点服务执行恢复。</li>
+<li>进度节点是否应全部进入会话事实？不必，临时展示与语义记录有不同用途。</li>
+<li>Source map 文件一致能否证明所有分支已发布启用？不能，还要考虑来源、构建与门控。</li>
+<li>增加 agent 数是否必然改善任务结果？不能，整合、冲突和成本都需要真实评测。</li>
+</ol>
+</section>
+<section id="推荐的个人研究记录" class="level2">
+<h2>推荐的个人研究记录</h2>
+<p>每次源码研究保存五项内容：快照身份、问题描述、实际调用链、失败路径和仍待验证的结论。记录“未做真实 API 测试”比省略验证范围更有帮助。发现与本书不符时，先比较提交号，再判断是实现变化、入口差异还是分析错误。</p>
+<p>书中未复印上游长段源码。读者可通过下一附录的固定提交链接定位开源实现；Claude Code 部分需要使用自行合法取得的同版本材料和哈希核对。链接失效时，完整提交号、相对路径与文件哈希仍可用于识别研究对象。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="24-design.html" rel="prev"><small>上一章</small>第 24 章 从研究到自建：一条可维护的实现路线</a><a href="26-sources.html" rel="next"><small>下一章</small>附录 B 源码快照与证据索引</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

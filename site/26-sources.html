@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>附录 B 源码快照与证据索引 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/26-sources.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="26-sources" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html" aria-current="page">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="附录-b-源码快照与证据索引" class="level1">
+<h1>附录 B 源码快照与证据索引</h1>
+<p>研究日期为 2026-10-30。以下链接固定到所读提交，行号是定位入口而非整章唯一依据。所有 SHA-256 来自本地文件原始字节。没有上传上游源码。</p>
+<section id="快照身份" class="level2">
+<h2>快照身份</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>项目</th>
+<th>提交或包版本</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>codex</td>
+<td><code>57d4fac64adbcaed0523ca6bf8d58c4ef6875157</code></td>
+<td>仅有未跟踪 docs/epub/；本书不将其作为实现证据</td>
+</tr>
+<tr>
+<td>deepseek-harness</td>
+<td><code>687f282e8625c6b8d11ff58211a90524be2e4317</code></td>
+<td>按发布包与 source map 标识</td>
+</tr>
+<tr>
+<td>pi</td>
+<td><code>16f5f0af4d85ca583d045ceb5ed6d646fcaf7761</code></td>
+<td>按发布包与 source map 标识</td>
+</tr>
+<tr>
+<td>ccsource</td>
+<td><code>Claude Code 2.1.88；无 Git 提交</code></td>
+<td>按发布包与 source map 标识</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="材料与验证方法" class="level2">
+<h2>材料与验证方法</h2>
+<p>研究脚本记录 68 个文件。Claude Code 被引用的提取实现逐一与 <code>cli.js.map</code> 内对应 <code>sourcesContent</code> 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。</p>
+<p>本文为静态分析；可运行实验另见第 23 章。未构建四个上游项目或执行统一真实模型评测。</p>
+</section>
+<section id="evidence-c01" class="level2">
+<h2>C01 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/session/turn.rs</code></li>
+<li>定位：第 173 行，<code>async fn run_turn</code>；文件共 3415 行。</li>
+<li>SHA-256：<code>076bf9522cba976a9b171d3a33403dfb7927330a73fe66afd4e8648f4b1c3629</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/turn.rs#L173">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c02" class="level2">
+<h2>C02 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/session/step_context.rs</code></li>
+<li>定位：第 23 行，<code>struct StepContext</code>；文件共 90 行。</li>
+<li>SHA-256：<code>a91cfea24c0065ac1ef2885141eb3491f9f156f2ccbfad588378ada9ce77b300</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/step_context.rs#L23">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c03" class="level2">
+<h2>C03 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/tools/router.rs</code></li>
+<li>定位：第 85 行，<code>struct ToolRouter</code>；文件共 449 行。</li>
+<li>SHA-256：<code>7345f8d2c467637e3d646d5510770457db89e4259e0515d5175de363e2c9c79e</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/router.rs#L85">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c04" class="level2">
+<h2>C04 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/tools/registry.rs</code></li>
+<li>定位：第 330 行，<code>struct ToolRegistry</code>；文件共 970 行。</li>
+<li>SHA-256：<code>fc37acd056a78779aeeff497d30bcbba759ea55f469ae2c9e7b8f37f3aeb2dae</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/registry.rs#L330">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c05" class="level2">
+<h2>C05 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/tools/orchestrator.rs</code></li>
+<li>定位：第 125 行，<code>pub async fn run</code>；文件共 645 行。</li>
+<li>SHA-256：<code>8996f718b818804473c151a8a643747c2b5ab69b05f4630eee143fac7daa0bb5</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/orchestrator.rs#L125">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c06" class="level2">
+<h2>C06 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/tools/parallel.rs</code></li>
+<li>定位：第 46 行，<code>struct ToolCallRuntime</code>；文件共 886 行。</li>
+<li>SHA-256：<code>f575c018ab1452d99ccf9fa4630e5af5e92bbc9eb3e5457ea17ab5be8ae946d0</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/parallel.rs#L46">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c07" class="level2">
+<h2>C07 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/unified_exec/process_manager.rs</code></li>
+<li>定位：第 451 行，<code>impl UnifiedExecProcessManager</code>；文件共 1929 行。</li>
+<li>SHA-256：<code>7eba3d82a54ad77cb989991ead28b39fe4aa1df24ddea020a0a36adb2d0fca5a</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/unified_exec/process_manager.rs#L451">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c08" class="level2">
+<h2>C08 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/compact.rs</code></li>
+<li>定位：第 117 行，<code>run_inline_auto_compact_task</code>；文件共 919 行。</li>
+<li>SHA-256：<code>7501febae5a93a943e22c17ddb4009d6fea587cef40c6d5c6cf1b0754737be0d</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact.rs#L117">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c09" class="level2">
+<h2>C09 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/session/rollout_reconstruction.rs</code></li>
+<li>定位：第 64 行，<code>fn select_input_compaction</code>；文件共 655 行。</li>
+<li>SHA-256：<code>1f4827c0f383641f2b407d7b40bca671d5d80a73412a1ccc9702ba4181d3d501</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/rollout_reconstruction.rs#L64">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c10" class="level2">
+<h2>C10 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/rollout/src/recorder.rs</code></li>
+<li>定位：第 86 行，<code>struct RolloutRecorder</code>；文件共 2300 行。</li>
+<li>SHA-256：<code>61641565235a7fd5289db4344a5e2b8f124b269eb461eeb37998d361d0cbea95</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/rollout/src/recorder.rs#L86">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c11" class="level2">
+<h2>C11 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/tools/spec_plan.rs</code></li>
+<li>定位：第 121 行，<code>build_tool_router</code>；文件共 1680 行。</li>
+<li>SHA-256：<code>919bf85acf44810892f6d1adc6701253c92a71678cbf74c877d718d0aaf9db9f</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/spec_plan.rs#L121">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c12" class="level2">
+<h2>C12 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/tools/sandboxing.rs</code></li>
+<li>定位：第 378 行，<code>trait ToolRuntime</code>；文件共 578 行。</li>
+<li>SHA-256：<code>1ab6c27e34a93fe3857281e11e388eb3ae4b786819fbe15883ad7e1fb8b5473f</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/sandboxing.rs#L378">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c13" class="level2">
+<h2>C13 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/session/input_queue.rs</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 843 行。</li>
+<li>SHA-256：<code>11212b3d8fa379ecbabcf8392889e157964075617cfb5d55b3ec5c2477ffaa45</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/input_queue.rs#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c14" class="level2">
+<h2>C14 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/core/src/session/multi_agents.rs</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 121 行。</li>
+<li>SHA-256：<code>a820832921665e16ddade8d56edd816c7f551d4eec3d509f75482426693fb7e4</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/multi_agents.rs#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c15" class="level2">
+<h2>C15 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/codex-rs/app-server/README.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 618 行。</li>
+<li>SHA-256：<code>d8e489c92adeb9d33bcbbcc5ff78431e839fdb2d6cefccb16812316bc22f5573</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/app-server/README.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-c16" class="level2">
+<h2>C16 · codex</h2>
+<ul>
+<li>相对路径：<code>codex/LICENSE</code></li>
+<li>定位：第 1 行，<code>Apache License</code>；文件共 201 行。</li>
+<li>SHA-256：<code>d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc</code></li>
+<li><a href="https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/LICENSE#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d01" class="level2">
+<h2>D01 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/docs/architecture.md</code></li>
+<li>定位：第 79 行，<code>## Turn flow</code>；文件共 165 行。</li>
+<li>SHA-256：<code>95a7722c7096d665d8adedeb733b8f5ad7740e67cb5c6e9dc91ec05f430cb760</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/architecture.md#L79">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d02" class="level2">
+<h2>D02 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/agent-loop/src/agent.ts</code></li>
+<li>定位：第 604 行，<code>prepareCall</code>；文件共 705 行。</li>
+<li>SHA-256：<code>4add12f5c22bb1b8cf1dbc239c9b09fa3351feff2c936cb2b8900036468bd01b</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/agent-loop/src/agent.ts#L604">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d03" class="level2">
+<h2>D03 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/agent-loop/src/tool-calls.ts</code></li>
+<li>定位：第 60 行，<code>async function executeToolCalls</code>；文件共 290 行。</li>
+<li>SHA-256：<code>5c7e8d8ff0028b436efdd13e5dffa4801d2311c211c3af039e7dab705f87b303</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/agent-loop/src/tool-calls.ts#L60">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d04" class="level2">
+<h2>D04 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/agent-loop/src/assistant-stream.ts</code></li>
+<li>定位：第 18 行，<code>class AssistantStreamAttempt</code>；文件共 140 行。</li>
+<li>SHA-256：<code>120d2bec5efeec2aa54bf0e4261a45282936272d610dbbab21eee36b902629de</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/agent-loop/src/assistant-stream.ts#L18">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d05" class="level2">
+<h2>D05 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/tools/src/index.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 1993 行。</li>
+<li>SHA-256：<code>398bcdeb221e450d088510830b77d99a513e65ab31e40ade71688a19cdf5e6aa</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/tools/src/index.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d06" class="level2">
+<h2>D06 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/tools/src/types.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 63 行。</li>
+<li>SHA-256：<code>26c2c9ac831526d9bcefe5ee3b9b1a6a8ca313d43efffe579670366790539bb6</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/tools/src/types.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d07" class="level2">
+<h2>D07 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/session/src/index.ts</code></li>
+<li>定位：第 984 行，<code>deriveMessages</code>；文件共 1453 行。</li>
+<li>SHA-256：<code>c1f08f7dcf4075eeebb13e6ea06b3f348bfeb85b8a5d4e4bfd1c3b93c1959332</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/session/src/index.ts#L984">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d08" class="level2">
+<h2>D08 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/session/src/types.ts</code></li>
+<li>定位：第 282 行，<code>SessionEventMap</code>；文件共 562 行。</li>
+<li>SHA-256：<code>515cba50f366b06dc3caaab45e8ce98c48c80fc07684437aba014df13ce04f2f</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/session/src/types.ts#L282">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d09" class="level2">
+<h2>D09 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/core/scope/src/index.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 204 行。</li>
+<li>SHA-256：<code>074b8f0c3fa2e240effd0a7e65c54be7c14debc1e53bb712334ce20d15affe4a</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/scope/src/index.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d10" class="level2">
+<h2>D10 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/session/session-persistence-jsonl/src/generation.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 1059 行。</li>
+<li>SHA-256：<code>43a400aaa47be789173ef4d5dd3226bce374cbfac300c2bff199b5a7d108efd6</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/session/session-persistence-jsonl/src/generation.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d11" class="level2">
+<h2>D11 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/session/session-persistence-jsonl/src/catalog-migration.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 92 行。</li>
+<li>SHA-256：<code>414ffd8d3ed6b80bb239f54916ec64e6b5f3d06ebc5a0d950922391271d612fa</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/session/session-persistence-jsonl/src/catalog-migration.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d12" class="level2">
+<h2>D12 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/compaction/compaction-basic/README.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 260 行。</li>
+<li>SHA-256：<code>dd5409de780a6463f83fbee08bc0d07fc11de210463d1927f1b11cae840629eb</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/README.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d13" class="level2">
+<h2>D13 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/subagent/subagent/README.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 227 行。</li>
+<li>SHA-256：<code>ac080c1b7b9224a5b86f43fceee9384f0e86daea73bfe62811891b62608e6d2f</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/README.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d14" class="level2">
+<h2>D14 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/sandbox/sandbox-policy/README.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 160 行。</li>
+<li>SHA-256：<code>d16b0648c8d17beb25fff96277e17ff24371497c09a5e2e1c28e34c94f60f80a</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-policy/README.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d15" class="level2">
+<h2>D15 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/docs/capability-seams.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 714 行。</li>
+<li>SHA-256：<code>ea9484aec30cc85fcb80d3205c9970fcef17ab83d6105f3a1c2c19b4cb2deaf0</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/capability-seams.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d16" class="level2">
+<h2>D16 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/docs/cordis-primer.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 45 行。</li>
+<li>SHA-256：<code>f0cc573cc10b60d1bd76039fb0bd666edfb32c9b18027d4dc301c042a9e65d58</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/cordis-primer.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d17" class="level2">
+<h2>D17 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/LICENSE</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 21 行。</li>
+<li>SHA-256：<code>ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/LICENSE#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-d18" class="level2">
+<h2>D18 · deepseek-harness</h2>
+<ul>
+<li>相对路径：<code>deepseek-harness/packages/llm/llm-pi-ai/README.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 273 行。</li>
+<li>SHA-256：<code>da63b3f79622bcb69ebafc345b04c4b930a5bd871c2cb13d1adcacf7afe3aa5e</code></li>
+<li><a href="https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-pi-ai/README.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p01" class="level2">
+<h2>P01 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/agent/src/agent-loop.ts</code></li>
+<li>定位：第 163 行，<code>async function runLoop</code>；文件共 949 行。</li>
+<li>SHA-256：<code>28a2b03e34a7e32f004aa851e54d3b5be9dad71c392205614cbc9abdf3a9020a</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/agent/src/agent-loop.ts#L163">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p02" class="level2">
+<h2>P02 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/agent/src/types.ts</code></li>
+<li>定位：第 47 行，<code>type ToolExecutionMode</code>；文件共 539 行。</li>
+<li>SHA-256：<code>2e116ef60fdaca4e26be5a1ace8d8b47f545d648d365de60b8c9f9d1ba629ee4</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/agent/src/types.ts#L47">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p03" class="level2">
+<h2>P03 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/agent/src/agent.ts</code></li>
+<li>定位：第 188 行，<code>class Agent</code>；文件共 613 行。</li>
+<li>SHA-256：<code>7024a3145a6ebc951a0f030164adb1dfb12d33d6e0dbbac15ef0efda49c87457</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/agent/src/agent.ts#L188">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p04" class="level2">
+<h2>P04 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/agent-session.ts</code></li>
+<li>定位：第 379 行，<code>class AgentSession</code>；文件共 4428 行。</li>
+<li>SHA-256：<code>e0fa206e8c49a98c024708068df39c0e4944f4251633425fc083b2fbb5ec0ac6</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/agent-session.ts#L379">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p05" class="level2">
+<h2>P05 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/session-manager.ts</code></li>
+<li>定位：第 57 行，<code>interface SessionEntryBase</code>；文件共 2013 行。</li>
+<li>SHA-256：<code>450d82c529933214e088b8422f00061815e617f352f6c834689787a314064bff</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/session-manager.ts#L57">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p06" class="level2">
+<h2>P06 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/compaction/compaction.ts</code></li>
+<li>定位：第 126 行，<code>DEFAULT_COMPACTION_SETTINGS</code>；文件共 1099 行。</li>
+<li>SHA-256：<code>f5bbc427e337be708bd15297806c0acaf7cb0ee65cc4af77e6e48c3e3937894f</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/compaction/compaction.ts#L126">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p07" class="level2">
+<h2>P07 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/tools/edit.ts</code></li>
+<li>定位：第 143 行，<code>function createEditToolDefinition</code>；文件共 220 行。</li>
+<li>SHA-256：<code>31a368c14cf5437ecac157765660001b16063302d9bd746303d6d1b1dcb5625d</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/edit.ts#L143">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p08" class="level2">
+<h2>P08 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/tools/file-mutation-queue.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 61 行。</li>
+<li>SHA-256：<code>33cb06ac9bcdf32c8b84d9d12e33be44c503a7670f668e003a3262cd34294d11</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/file-mutation-queue.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p09" class="level2">
+<h2>P09 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/project-trust.ts</code></li>
+<li>定位：第 47 行，<code>function resolveProjectTrusted</code>；文件共 97 行。</li>
+<li>SHA-256：<code>7e5875d8786c7a6b28e8263d879f1454e6273c6cd432a8da76d75ee5ff51088f</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/project-trust.ts#L47">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p10" class="level2">
+<h2>P10 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/extensions/runner.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 1565 行。</li>
+<li>SHA-256：<code>3cd6d1ad18e8e4c7adf722aed9291bc64f06e3a7d461755c21e3cba4819f4e5e</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/extensions/runner.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p11" class="level2">
+<h2>P11 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/extensions/types.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 2304 行。</li>
+<li>SHA-256：<code>cb54c7a4fedb3473bb995694bbc1f2988c144fb0b802bfd1b656816bc25d0f25</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/extensions/types.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p12" class="level2">
+<h2>P12 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/durable/README.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 874 行。</li>
+<li>SHA-256：<code>4ffad270954f23a8c35514de5494b1953623ef1147fea0f7089f28382710393a</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/README.md#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p13" class="level2">
+<h2>P13 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/durable/src/harness/inbox.ts</code></li>
+<li>定位：第 51 行，<code>async function prepareBoundary</code>；文件共 168 行。</li>
+<li>SHA-256：<code>ead422265ffff2ffd5bc2e6047b62d8b932732e7addd3e0cc964f9fcb9e45437</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/inbox.ts#L51">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p14" class="level2">
+<h2>P14 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/durable/src/tasks.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 8 行。</li>
+<li>SHA-256：<code>08ed979b5ae25122aca620952deeb0cde4956c41869ae5a51d47fc7aaf2627d9</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/tasks.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p15" class="level2">
+<h2>P15 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/ai/src/types.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 898 行。</li>
+<li>SHA-256：<code>2a48985ce8f4c1710f1e107433e8cc23ba32cf03a1bd5e53565137c887a6f7c3</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/ai/src/types.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p16" class="level2">
+<h2>P16 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/LICENSE</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 21 行。</li>
+<li>SHA-256：<code>0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/LICENSE#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p17" class="level2">
+<h2>P17 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/core/tools/bash.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 442 行。</li>
+<li>SHA-256：<code>de2b54d4f4bfbb844ce6d8077f63d715f7d8e80079dd9689b561e45b6679c81b</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/bash.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-p18" class="level2">
+<h2>P18 · pi</h2>
+<ul>
+<li>相对路径：<code>pi/packages/coding-agent/src/modes/rpc/rpc-mode.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 819 行。</li>
+<li>SHA-256：<code>d534e0fa1484844a097963d5f4fb4df9397c5a1b5e29e42aed7575ab6f67989b</code></li>
+<li><a href="https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/modes/rpc/rpc-mode.ts#L1">固定提交源码</a></li>
+</ul>
+</section>
+<section id="evidence-a01" class="level2">
+<h2>A01 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/package.json</code></li>
+<li>定位：第 3 行，<code>"version"</code>；文件共 35 行。</li>
+<li>SHA-256：<code>0fb4bb78f60c07760788a10f53a444d5c3b22228edd124772abe03d55f34ebe9</code></li>
+</ul>
+</section>
+<section id="evidence-a02" class="level2">
+<h2>A02 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/cli.js.map</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 4764 行。</li>
+<li>SHA-256：<code>7965012b7a5fc9e09d8d747a04c5c32b94696924536e217f686bb1e7ee70a657</code></li>
+</ul>
+</section>
+<section id="evidence-a03" class="level2">
+<h2>A03 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/query.ts</code></li>
+<li>定位：第 241 行，<code>async function* queryLoop</code>；文件共 1729 行。</li>
+<li>SHA-256：<code>74e0ce0d86cfd453add8dc1d15ccb6311b02964b8321e3721b8e71fbd87252ce</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a04" class="level2">
+<h2>A04 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/Tool.ts</code></li>
+<li>定位：第 362 行，<code>export type Tool&lt;</code>；文件共 792 行。</li>
+<li>SHA-256：<code>29d555ab8e50de9fb005264b5334aba870f1da472198e14d0b3ab0bf86d7c49c</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a05" class="level2">
+<h2>A05 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/services/tools/StreamingToolExecutor.ts</code></li>
+<li>定位：第 40 行，<code>class StreamingToolExecutor</code>；文件共 530 行。</li>
+<li>SHA-256：<code>ee17dce704af73787c9ed76dbbc638167521e5c1f68c9436149378bb3358601c</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a06" class="level2">
+<h2>A06 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/services/tools/toolExecution.ts</code></li>
+<li>定位：第 599 行，<code>async function checkPermissionsAndCallTool</code>；文件共 1745 行。</li>
+<li>SHA-256：<code>77aae23a5b8b68aa1ee32b99eb25c6360071d7a4c4c46e6d2c95d584fb6e25e0</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a07" class="level2">
+<h2>A07 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/services/compact/autoCompact.ts</code></li>
+<li>定位：第 72 行，<code>getAutoCompactThreshold</code>；文件共 351 行。</li>
+<li>SHA-256：<code>1946b5ea23fa2eda91955378641258fb8f19e7742f06ce17d6caae7f2d3c921a</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a08" class="level2">
+<h2>A08 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/services/compact/microCompact.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 530 行。</li>
+<li>SHA-256：<code>4509572de2be2f8024820df3e1e1f79e32074c708e56b3f5de0b37764f0d7bf2</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a09" class="level2">
+<h2>A09 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/services/compact/compact.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 1705 行。</li>
+<li>SHA-256：<code>80af045d9247de7dda0cbe7aab653329d0b7c8b62a2cdadfd86238305df71f53</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a10" class="level2">
+<h2>A10 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/utils/sessionStorage.ts</code></li>
+<li>定位：第 154 行，<code>function isChainParticipant</code>；文件共 5105 行。</li>
+<li>SHA-256：<code>8a123ebce1ee72b9081d34b8f3697e5fcc9c7576df5b98e4206bb28414134412</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a11" class="level2">
+<h2>A11 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/utils/permissions/permissions.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 1486 行。</li>
+<li>SHA-256：<code>3a28acc854014fe49751aeaf7ca2648239cb309811fd948db3bcc91b46baed05</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a12" class="level2">
+<h2>A12 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/tools/BashTool/bashPermissions.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 2621 行。</li>
+<li>SHA-256：<code>8656e6b59b6923cd730451f29dccac140e9622dd64c0a5ae6c1d52a5ca1b987b</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a13" class="level2">
+<h2>A13 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/tools/AgentTool/AgentTool.tsx</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 1398 行。</li>
+<li>SHA-256：<code>322e8d097352d61d42bc2aa30b7e2509c3a9782d8d77434f960f7f650143401a</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a14" class="level2">
+<h2>A14 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/hooks/useCanUseTool.tsx</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 204 行。</li>
+<li>SHA-256：<code>3689b30326118e94bb53a8cc1fa1761d1c0b1bff6489162f1dd0771ec8b8b953</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="evidence-a15" class="level2">
+<h2>A15 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/LICENSE.md</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 1 行。</li>
+<li>SHA-256：<code>8ce94b9478bb9868f9641f818e06cd722fbe55d4c22e2d2ed11971b20146173a</code></li>
+</ul>
+</section>
+<section id="evidence-a16" class="level2">
+<h2>A16 · ccsource</h2>
+<ul>
+<li>相对路径：<code>ccsource/package/src-extracted/src/utils/sessionRestore.ts</code></li>
+<li>定位：第 1 行，<code>file</code>；文件共 551 行。</li>
+<li>SHA-256：<code>9dfe9c2203aac5c3cc6d49e45bf2f8fd381582781b5cec3abbc4ceb6d219e177</code></li>
+<li>本地提取文本与发布包 source map 嵌入文本一致。</li>
+</ul>
+</section>
+<section id="官方补充资料" class="level2">
+<h2>官方补充资料</h2>
+<ul>
+<li><a href="https://developers.openai.com/blog/codex-as-a-platform">OpenAI：Codex as a platform</a>，访问日期 2026-10-30，仅用于 harness 术语与职责说明。</li>
+<li>开源项目的许可证与署名见仓库 <code>NOTICE.md</code> 和 <code>LICENSES/</code>。</li>
+</ul>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="25-glossary.html" rel="prev"><small>上一章</small>附录 A 术语、阅读地图与自检答案</a><a href="27-colophon.html" rel="next"><small>下一章</small>附录 C 构建、验证与修订说明</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

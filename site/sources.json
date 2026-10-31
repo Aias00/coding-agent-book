@@ -1,0 +1,721 @@
+{
+  "edition": "1.0.0",
+  "review_date": "2026-10-30",
+  "projects": {
+    "codex": {
+      "commit": "57d4fac64adbcaed0523ca6bf8d58c4ef6875157",
+      "remote": "https://github.com/openai/codex.git",
+      "working_tree_status": "?? docs/epub/"
+    },
+    "deepseek-harness": {
+      "commit": "687f282e8625c6b8d11ff58211a90524be2e4317",
+      "remote": "https://github.com/deepseek-ai/deepseek-harness.git",
+      "working_tree_status": "?? book/"
+    },
+    "pi": {
+      "commit": "16f5f0af4d85ca583d045ceb5ed6d646fcaf7761",
+      "remote": "https://github.com/earendil-works/pi.git",
+      "working_tree_status": "?? books/"
+    },
+    "ccsource": {
+      "commit": null,
+      "remote": null,
+      "working_tree_status": null
+    }
+  },
+  "files": [
+    {
+      "id": "C01",
+      "project": "codex",
+      "path": "codex-rs/core/src/session/turn.rs",
+      "sha256": "076bf9522cba976a9b171d3a33403dfb7927330a73fe66afd4e8648f4b1c3629",
+      "lines": 3415,
+      "locator": "async fn run_turn",
+      "line": 173,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/turn.rs#L173"
+    },
+    {
+      "id": "C02",
+      "project": "codex",
+      "path": "codex-rs/core/src/session/step_context.rs",
+      "sha256": "a91cfea24c0065ac1ef2885141eb3491f9f156f2ccbfad588378ada9ce77b300",
+      "lines": 90,
+      "locator": "struct StepContext",
+      "line": 23,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/step_context.rs#L23"
+    },
+    {
+      "id": "C03",
+      "project": "codex",
+      "path": "codex-rs/core/src/tools/router.rs",
+      "sha256": "7345f8d2c467637e3d646d5510770457db89e4259e0515d5175de363e2c9c79e",
+      "lines": 449,
+      "locator": "struct ToolRouter",
+      "line": 85,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/router.rs#L85"
+    },
+    {
+      "id": "C04",
+      "project": "codex",
+      "path": "codex-rs/core/src/tools/registry.rs",
+      "sha256": "fc37acd056a78779aeeff497d30bcbba759ea55f469ae2c9e7b8f37f3aeb2dae",
+      "lines": 970,
+      "locator": "struct ToolRegistry",
+      "line": 330,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/registry.rs#L330"
+    },
+    {
+      "id": "C05",
+      "project": "codex",
+      "path": "codex-rs/core/src/tools/orchestrator.rs",
+      "sha256": "8996f718b818804473c151a8a643747c2b5ab69b05f4630eee143fac7daa0bb5",
+      "lines": 645,
+      "locator": "pub async fn run",
+      "line": 125,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/orchestrator.rs#L125"
+    },
+    {
+      "id": "C06",
+      "project": "codex",
+      "path": "codex-rs/core/src/tools/parallel.rs",
+      "sha256": "f575c018ab1452d99ccf9fa4630e5af5e92bbc9eb3e5457ea17ab5be8ae946d0",
+      "lines": 886,
+      "locator": "struct ToolCallRuntime",
+      "line": 46,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/parallel.rs#L46"
+    },
+    {
+      "id": "C07",
+      "project": "codex",
+      "path": "codex-rs/core/src/unified_exec/process_manager.rs",
+      "sha256": "7eba3d82a54ad77cb989991ead28b39fe4aa1df24ddea020a0a36adb2d0fca5a",
+      "lines": 1929,
+      "locator": "impl UnifiedExecProcessManager",
+      "line": 451,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/unified_exec/process_manager.rs#L451"
+    },
+    {
+      "id": "C08",
+      "project": "codex",
+      "path": "codex-rs/core/src/compact.rs",
+      "sha256": "7501febae5a93a943e22c17ddb4009d6fea587cef40c6d5c6cf1b0754737be0d",
+      "lines": 919,
+      "locator": "run_inline_auto_compact_task",
+      "line": 117,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact.rs#L117"
+    },
+    {
+      "id": "C09",
+      "project": "codex",
+      "path": "codex-rs/core/src/session/rollout_reconstruction.rs",
+      "sha256": "1f4827c0f383641f2b407d7b40bca671d5d80a73412a1ccc9702ba4181d3d501",
+      "lines": 655,
+      "locator": "fn select_input_compaction",
+      "line": 64,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/rollout_reconstruction.rs#L64"
+    },
+    {
+      "id": "C10",
+      "project": "codex",
+      "path": "codex-rs/rollout/src/recorder.rs",
+      "sha256": "61641565235a7fd5289db4344a5e2b8f124b269eb461eeb37998d361d0cbea95",
+      "lines": 2300,
+      "locator": "struct RolloutRecorder",
+      "line": 86,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/rollout/src/recorder.rs#L86"
+    },
+    {
+      "id": "C11",
+      "project": "codex",
+      "path": "codex-rs/core/src/tools/spec_plan.rs",
+      "sha256": "919bf85acf44810892f6d1adc6701253c92a71678cbf74c877d718d0aaf9db9f",
+      "lines": 1680,
+      "locator": "build_tool_router",
+      "line": 121,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/spec_plan.rs#L121"
+    },
+    {
+      "id": "C12",
+      "project": "codex",
+      "path": "codex-rs/core/src/tools/sandboxing.rs",
+      "sha256": "1ab6c27e34a93fe3857281e11e388eb3ae4b786819fbe15883ad7e1fb8b5473f",
+      "lines": 578,
+      "locator": "trait ToolRuntime",
+      "line": 378,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/tools/sandboxing.rs#L378"
+    },
+    {
+      "id": "C13",
+      "project": "codex",
+      "path": "codex-rs/core/src/session/input_queue.rs",
+      "sha256": "11212b3d8fa379ecbabcf8392889e157964075617cfb5d55b3ec5c2477ffaa45",
+      "lines": 843,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/input_queue.rs#L1"
+    },
+    {
+      "id": "C14",
+      "project": "codex",
+      "path": "codex-rs/core/src/session/multi_agents.rs",
+      "sha256": "a820832921665e16ddade8d56edd816c7f551d4eec3d509f75482426693fb7e4",
+      "lines": 121,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/multi_agents.rs#L1"
+    },
+    {
+      "id": "C15",
+      "project": "codex",
+      "path": "codex-rs/app-server/README.md",
+      "sha256": "d8e489c92adeb9d33bcbbcc5ff78431e839fdb2d6cefccb16812316bc22f5573",
+      "lines": 618,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/app-server/README.md#L1"
+    },
+    {
+      "id": "C16",
+      "project": "codex",
+      "path": "LICENSE",
+      "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+      "lines": 201,
+      "locator": "Apache License",
+      "line": 1,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/LICENSE#L1"
+    },
+    {
+      "id": "D01",
+      "project": "deepseek-harness",
+      "path": "docs/architecture.md",
+      "sha256": "95a7722c7096d665d8adedeb733b8f5ad7740e67cb5c6e9dc91ec05f430cb760",
+      "lines": 165,
+      "locator": "## Turn flow",
+      "line": 79,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/architecture.md#L79"
+    },
+    {
+      "id": "D02",
+      "project": "deepseek-harness",
+      "path": "packages/core/agent-loop/src/agent.ts",
+      "sha256": "4add12f5c22bb1b8cf1dbc239c9b09fa3351feff2c936cb2b8900036468bd01b",
+      "lines": 705,
+      "locator": "prepareCall",
+      "line": 604,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/agent-loop/src/agent.ts#L604"
+    },
+    {
+      "id": "D03",
+      "project": "deepseek-harness",
+      "path": "packages/core/agent-loop/src/tool-calls.ts",
+      "sha256": "5c7e8d8ff0028b436efdd13e5dffa4801d2311c211c3af039e7dab705f87b303",
+      "lines": 290,
+      "locator": "async function executeToolCalls",
+      "line": 60,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/agent-loop/src/tool-calls.ts#L60"
+    },
+    {
+      "id": "D04",
+      "project": "deepseek-harness",
+      "path": "packages/core/agent-loop/src/assistant-stream.ts",
+      "sha256": "120d2bec5efeec2aa54bf0e4261a45282936272d610dbbab21eee36b902629de",
+      "lines": 140,
+      "locator": "class AssistantStreamAttempt",
+      "line": 18,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/agent-loop/src/assistant-stream.ts#L18"
+    },
+    {
+      "id": "D05",
+      "project": "deepseek-harness",
+      "path": "packages/core/tools/src/index.ts",
+      "sha256": "398bcdeb221e450d088510830b77d99a513e65ab31e40ade71688a19cdf5e6aa",
+      "lines": 1993,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/tools/src/index.ts#L1"
+    },
+    {
+      "id": "D06",
+      "project": "deepseek-harness",
+      "path": "packages/core/tools/src/types.ts",
+      "sha256": "26c2c9ac831526d9bcefe5ee3b9b1a6a8ca313d43efffe579670366790539bb6",
+      "lines": 63,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/tools/src/types.ts#L1"
+    },
+    {
+      "id": "D07",
+      "project": "deepseek-harness",
+      "path": "packages/core/session/src/index.ts",
+      "sha256": "c1f08f7dcf4075eeebb13e6ea06b3f348bfeb85b8a5d4e4bfd1c3b93c1959332",
+      "lines": 1453,
+      "locator": "deriveMessages",
+      "line": 984,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/session/src/index.ts#L984"
+    },
+    {
+      "id": "D08",
+      "project": "deepseek-harness",
+      "path": "packages/core/session/src/types.ts",
+      "sha256": "515cba50f366b06dc3caaab45e8ce98c48c80fc07684437aba014df13ce04f2f",
+      "lines": 562,
+      "locator": "SessionEventMap",
+      "line": 282,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/session/src/types.ts#L282"
+    },
+    {
+      "id": "D09",
+      "project": "deepseek-harness",
+      "path": "packages/core/scope/src/index.ts",
+      "sha256": "074b8f0c3fa2e240effd0a7e65c54be7c14debc1e53bb712334ce20d15affe4a",
+      "lines": 204,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/core/scope/src/index.ts#L1"
+    },
+    {
+      "id": "D10",
+      "project": "deepseek-harness",
+      "path": "packages/session/session-persistence-jsonl/src/generation.ts",
+      "sha256": "43a400aaa47be789173ef4d5dd3226bce374cbfac300c2bff199b5a7d108efd6",
+      "lines": 1059,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/session/session-persistence-jsonl/src/generation.ts#L1"
+    },
+    {
+      "id": "D11",
+      "project": "deepseek-harness",
+      "path": "packages/session/session-persistence-jsonl/src/catalog-migration.ts",
+      "sha256": "414ffd8d3ed6b80bb239f54916ec64e6b5f3d06ebc5a0d950922391271d612fa",
+      "lines": 92,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/session/session-persistence-jsonl/src/catalog-migration.ts#L1"
+    },
+    {
+      "id": "D12",
+      "project": "deepseek-harness",
+      "path": "packages/compaction/compaction-basic/README.md",
+      "sha256": "dd5409de780a6463f83fbee08bc0d07fc11de210463d1927f1b11cae840629eb",
+      "lines": 260,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/README.md#L1"
+    },
+    {
+      "id": "D13",
+      "project": "deepseek-harness",
+      "path": "packages/subagent/subagent/README.md",
+      "sha256": "ac080c1b7b9224a5b86f43fceee9384f0e86daea73bfe62811891b62608e6d2f",
+      "lines": 227,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/README.md#L1"
+    },
+    {
+      "id": "D14",
+      "project": "deepseek-harness",
+      "path": "packages/sandbox/sandbox-policy/README.md",
+      "sha256": "d16b0648c8d17beb25fff96277e17ff24371497c09a5e2e1c28e34c94f60f80a",
+      "lines": 160,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-policy/README.md#L1"
+    },
+    {
+      "id": "D15",
+      "project": "deepseek-harness",
+      "path": "docs/capability-seams.md",
+      "sha256": "ea9484aec30cc85fcb80d3205c9970fcef17ab83d6105f3a1c2c19b4cb2deaf0",
+      "lines": 714,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/capability-seams.md#L1"
+    },
+    {
+      "id": "D16",
+      "project": "deepseek-harness",
+      "path": "docs/cordis-primer.md",
+      "sha256": "f0cc573cc10b60d1bd76039fb0bd666edfb32c9b18027d4dc301c042a9e65d58",
+      "lines": 45,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/docs/cordis-primer.md#L1"
+    },
+    {
+      "id": "D17",
+      "project": "deepseek-harness",
+      "path": "LICENSE",
+      "sha256": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be",
+      "lines": 21,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/LICENSE#L1"
+    },
+    {
+      "id": "D18",
+      "project": "deepseek-harness",
+      "path": "packages/llm/llm-pi-ai/README.md",
+      "sha256": "da63b3f79622bcb69ebafc345b04c4b930a5bd871c2cb13d1adcacf7afe3aa5e",
+      "lines": 273,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-pi-ai/README.md#L1"
+    },
+    {
+      "id": "P01",
+      "project": "pi",
+      "path": "packages/agent/src/agent-loop.ts",
+      "sha256": "28a2b03e34a7e32f004aa851e54d3b5be9dad71c392205614cbc9abdf3a9020a",
+      "lines": 949,
+      "locator": "async function runLoop",
+      "line": 163,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/agent/src/agent-loop.ts#L163"
+    },
+    {
+      "id": "P02",
+      "project": "pi",
+      "path": "packages/agent/src/types.ts",
+      "sha256": "2e116ef60fdaca4e26be5a1ace8d8b47f545d648d365de60b8c9f9d1ba629ee4",
+      "lines": 539,
+      "locator": "type ToolExecutionMode",
+      "line": 47,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/agent/src/types.ts#L47"
+    },
+    {
+      "id": "P03",
+      "project": "pi",
+      "path": "packages/agent/src/agent.ts",
+      "sha256": "7024a3145a6ebc951a0f030164adb1dfb12d33d6e0dbbac15ef0efda49c87457",
+      "lines": 613,
+      "locator": "class Agent",
+      "line": 188,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/agent/src/agent.ts#L188"
+    },
+    {
+      "id": "P04",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/agent-session.ts",
+      "sha256": "e0fa206e8c49a98c024708068df39c0e4944f4251633425fc083b2fbb5ec0ac6",
+      "lines": 4428,
+      "locator": "class AgentSession",
+      "line": 379,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/agent-session.ts#L379"
+    },
+    {
+      "id": "P05",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/session-manager.ts",
+      "sha256": "450d82c529933214e088b8422f00061815e617f352f6c834689787a314064bff",
+      "lines": 2013,
+      "locator": "interface SessionEntryBase",
+      "line": 57,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/session-manager.ts#L57"
+    },
+    {
+      "id": "P06",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/compaction/compaction.ts",
+      "sha256": "f5bbc427e337be708bd15297806c0acaf7cb0ee65cc4af77e6e48c3e3937894f",
+      "lines": 1099,
+      "locator": "DEFAULT_COMPACTION_SETTINGS",
+      "line": 126,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/compaction/compaction.ts#L126"
+    },
+    {
+      "id": "P07",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/tools/edit.ts",
+      "sha256": "31a368c14cf5437ecac157765660001b16063302d9bd746303d6d1b1dcb5625d",
+      "lines": 220,
+      "locator": "function createEditToolDefinition",
+      "line": 143,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/edit.ts#L143"
+    },
+    {
+      "id": "P08",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/tools/file-mutation-queue.ts",
+      "sha256": "33cb06ac9bcdf32c8b84d9d12e33be44c503a7670f668e003a3262cd34294d11",
+      "lines": 61,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/file-mutation-queue.ts#L1"
+    },
+    {
+      "id": "P09",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/project-trust.ts",
+      "sha256": "7e5875d8786c7a6b28e8263d879f1454e6273c6cd432a8da76d75ee5ff51088f",
+      "lines": 97,
+      "locator": "function resolveProjectTrusted",
+      "line": 47,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/project-trust.ts#L47"
+    },
+    {
+      "id": "P10",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/extensions/runner.ts",
+      "sha256": "3cd6d1ad18e8e4c7adf722aed9291bc64f06e3a7d461755c21e3cba4819f4e5e",
+      "lines": 1565,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/extensions/runner.ts#L1"
+    },
+    {
+      "id": "P11",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/extensions/types.ts",
+      "sha256": "cb54c7a4fedb3473bb995694bbc1f2988c144fb0b802bfd1b656816bc25d0f25",
+      "lines": 2304,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/extensions/types.ts#L1"
+    },
+    {
+      "id": "P12",
+      "project": "pi",
+      "path": "packages/durable/README.md",
+      "sha256": "4ffad270954f23a8c35514de5494b1953623ef1147fea0f7089f28382710393a",
+      "lines": 874,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/README.md#L1"
+    },
+    {
+      "id": "P13",
+      "project": "pi",
+      "path": "packages/durable/src/harness/inbox.ts",
+      "sha256": "ead422265ffff2ffd5bc2e6047b62d8b932732e7addd3e0cc964f9fcb9e45437",
+      "lines": 168,
+      "locator": "async function prepareBoundary",
+      "line": 51,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/inbox.ts#L51"
+    },
+    {
+      "id": "P14",
+      "project": "pi",
+      "path": "packages/durable/src/tasks.ts",
+      "sha256": "08ed979b5ae25122aca620952deeb0cde4956c41869ae5a51d47fc7aaf2627d9",
+      "lines": 8,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/tasks.ts#L1"
+    },
+    {
+      "id": "P15",
+      "project": "pi",
+      "path": "packages/ai/src/types.ts",
+      "sha256": "2a48985ce8f4c1710f1e107433e8cc23ba32cf03a1bd5e53565137c887a6f7c3",
+      "lines": 898,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/ai/src/types.ts#L1"
+    },
+    {
+      "id": "P16",
+      "project": "pi",
+      "path": "LICENSE",
+      "sha256": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48",
+      "lines": 21,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/LICENSE#L1"
+    },
+    {
+      "id": "P17",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/tools/bash.ts",
+      "sha256": "de2b54d4f4bfbb844ce6d8077f63d715f7d8e80079dd9689b561e45b6679c81b",
+      "lines": 442,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/bash.ts#L1"
+    },
+    {
+      "id": "P18",
+      "project": "pi",
+      "path": "packages/coding-agent/src/modes/rpc/rpc-mode.ts",
+      "sha256": "d534e0fa1484844a097963d5f4fb4df9397c5a1b5e29e42aed7575ab6f67989b",
+      "lines": 819,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/modes/rpc/rpc-mode.ts#L1"
+    },
+    {
+      "id": "A01",
+      "project": "ccsource",
+      "path": "package/package.json",
+      "sha256": "0fb4bb78f60c07760788a10f53a444d5c3b22228edd124772abe03d55f34ebe9",
+      "lines": 35,
+      "locator": "\"version\"",
+      "line": 3,
+      "url": null
+    },
+    {
+      "id": "A02",
+      "project": "ccsource",
+      "path": "package/cli.js.map",
+      "sha256": "7965012b7a5fc9e09d8d747a04c5c32b94696924536e217f686bb1e7ee70a657",
+      "lines": 4764,
+      "locator": "file",
+      "line": 1,
+      "url": null
+    },
+    {
+      "id": "A03",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/query.ts",
+      "sha256": "74e0ce0d86cfd453add8dc1d15ccb6311b02964b8321e3721b8e71fbd87252ce",
+      "lines": 1729,
+      "locator": "async function* queryLoop",
+      "line": 241,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A04",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/Tool.ts",
+      "sha256": "29d555ab8e50de9fb005264b5334aba870f1da472198e14d0b3ab0bf86d7c49c",
+      "lines": 792,
+      "locator": "export type Tool<",
+      "line": 362,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A05",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/services/tools/StreamingToolExecutor.ts",
+      "sha256": "ee17dce704af73787c9ed76dbbc638167521e5c1f68c9436149378bb3358601c",
+      "lines": 530,
+      "locator": "class StreamingToolExecutor",
+      "line": 40,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A06",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/services/tools/toolExecution.ts",
+      "sha256": "77aae23a5b8b68aa1ee32b99eb25c6360071d7a4c4c46e6d2c95d584fb6e25e0",
+      "lines": 1745,
+      "locator": "async function checkPermissionsAndCallTool",
+      "line": 599,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A07",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/services/compact/autoCompact.ts",
+      "sha256": "1946b5ea23fa2eda91955378641258fb8f19e7742f06ce17d6caae7f2d3c921a",
+      "lines": 351,
+      "locator": "getAutoCompactThreshold",
+      "line": 72,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A08",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/services/compact/microCompact.ts",
+      "sha256": "4509572de2be2f8024820df3e1e1f79e32074c708e56b3f5de0b37764f0d7bf2",
+      "lines": 530,
+      "locator": "file",
+      "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A09",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/services/compact/compact.ts",
+      "sha256": "80af045d9247de7dda0cbe7aab653329d0b7c8b62a2cdadfd86238305df71f53",
+      "lines": 1705,
+      "locator": "file",
+      "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A10",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/utils/sessionStorage.ts",
+      "sha256": "8a123ebce1ee72b9081d34b8f3697e5fcc9c7576df5b98e4206bb28414134412",
+      "lines": 5105,
+      "locator": "function isChainParticipant",
+      "line": 154,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A11",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/utils/permissions/permissions.ts",
+      "sha256": "3a28acc854014fe49751aeaf7ca2648239cb309811fd948db3bcc91b46baed05",
+      "lines": 1486,
+      "locator": "file",
+      "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A12",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/tools/BashTool/bashPermissions.ts",
+      "sha256": "8656e6b59b6923cd730451f29dccac140e9622dd64c0a5ae6c1d52a5ca1b987b",
+      "lines": 2621,
+      "locator": "file",
+      "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A13",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/tools/AgentTool/AgentTool.tsx",
+      "sha256": "322e8d097352d61d42bc2aa30b7e2509c3a9782d8d77434f960f7f650143401a",
+      "lines": 1398,
+      "locator": "file",
+      "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A14",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/hooks/useCanUseTool.tsx",
+      "sha256": "3689b30326118e94bb53a8cc1fa1761d1c0b1bff6489162f1dd0771ec8b8b953",
+      "lines": 204,
+      "locator": "file",
+      "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A15",
+      "project": "ccsource",
+      "path": "package/LICENSE.md",
+      "sha256": "8ce94b9478bb9868f9641f818e06cd722fbe55d4c22e2d2ed11971b20146173a",
+      "lines": 1,
+      "locator": "file",
+      "line": 1,
+      "url": null
+    },
+    {
+      "id": "A16",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/utils/sessionRestore.ts",
+      "sha256": "9dfe9c2203aac5c3cc6d49e45bf2f8fd381582781b5cec3abbc4ceb6d219e177",
+      "lines": 551,
+      "locator": "file",
+      "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    }
+  ]
+}

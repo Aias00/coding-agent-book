@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 17 章 Claude Code：权限决策与 shell 的特殊复杂性 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/17-claude-permissions.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="17-claude-permissions" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html" aria-current="page">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-17-章-claude-code权限决策与-shell-的特殊复杂性" class="level1">
+<h1>第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</h1>
+<section id="allowdeny-与-ask-是三种状态" class="level2">
+<h2>Allow、deny 与 ask 是三种状态</h2>
+<p>权限系统需要表达允许、拒绝和需要进一步决策。<code>CanUseToolFn</code> 接收工具、输入、执行上下文和调用身份；交互 hook 再把相应决策映射到 UI 或继续执行。执行管线最终只有在允许时进入工具调用，拒绝会形成可观察结果。<a href="26-sources.html#evidence-a06">A06</a><a href="26-sources.html#evidence-a14">A14</a></p>
+<p>ask 不是一个布尔假值。它代表工作暂停等待一个决策者，这个决策者可能是用户，也可能是宿主集成。若异步等待丢失、重复提交或错误绑定到另一项调用，审批本身就会产生竞态。</p>
+</section>
+<section id="规则匹配不是-shell-语义证明" class="level2">
+<h2>规则匹配不是 shell 语义证明</h2>
+<p>包中有独立的权限规则、文件路径与 Bash 权限逻辑。因为 shell 命令包含管道、重定向、子命令、变量扩展与解释器，简单前缀判断很难准确表达实际效果。<a href="26-sources.html#evidence-a11">A11</a><a href="26-sources.html#evidence-a12">A12</a></p>
+<p>比如允许 <code>python</code> 并不意味着只允许无害计算，允许 <code>git</code> 也不代表不会修改配置或调用外部程序。因此工具名规则更适合表达粗粒度用户偏好，真正的资源限制仍需要环境级控制和具体解析。本文的这一段是工程推理，不是对该产品某条规则可绕过的漏洞报告。</p>
+</section>
+<section id="权限模式与环境能力要分开" class="level2">
+<h2>权限模式与环境能力要分开</h2>
+<p>一个产品可以提供不同交互模式，减少逐次询问或只允许计划。模式决定框架怎样作出授权选择，沙箱决定执行器实际能访问什么。前者如果放宽，不应该让文档误写成后者仍提供相同限制；后者如果受限，也不能让 UI 把所有允许动作都当成无需审查。<a href="26-sources.html#evidence-a04">A04</a><a href="26-sources.html#evidence-a11">A11</a></p>
+<p>路径修复的最小授权通常是读取工作区、编辑指定文件和运行定向测试。若测试脚本可以联网或读取家目录，实际权限范围远超过“跑测试”三个字。权限提示应帮助用户理解有效范围，同时避免展示与判断无关的实现细节。</p>
+</section>
+<section id="计划模式需要机器规则支撑" class="level2">
+<h2>计划模式需要机器规则支撑</h2>
+<p>告诉模型“先写计划”有助于引导行为，却不是禁止执行。若工具列表仍包含高权限操作、执行器也不检查状态，模型偶然越过计划约束仍会产生副作用。可靠的计划阶段需要能力暴露或授权规则配合。</p>
+<p>四个项目都提供可以承载策略的位置，但不能仅凭有一个 Plan 工具就推导出严格只读。本书在横向比较中把“有交互能力”与“有强制执行边界”分别列出，以避免这种概念混淆。</p>
+</section>
+<section id="自动决策仍需要完整记录" class="level2">
+<h2>自动决策仍需要完整记录</h2>
+<p>可见执行路径记录权限决策来源与相关指标，用来解释允许或拒绝来自配置、hook 还是用户选择。记录来源有利于排查“为什么这次没问”的问题，但日志需要保护命令参数、路径和凭据。<a href="26-sources.html#evidence-a06">A06</a></p>
+<p>在企业系统中，审批事件最好包含经过规范化的行动摘要、权限范围、有效期、决策来源和调用关联。不要把完整私密输入无条件复制到遥测系统，也不要只记一个 allow 而丢失其前提。</p>
+</section>
+<section id="审计顺序应该如何安排" class="level2">
+<h2>审计顺序应该如何安排</h2>
+<p>先检查外部输入在哪里进入，再检查工具 schema 与语义校验，随后检查规则组合与参数改写，最后检查操作系统、网络和凭据边界。单测能够覆盖局部分支，但 shell 与路径策略还需要针对真实平台执行验证。</p>
+<p>练习：用户允许一次删除临时目录，系统能否以后不再询问所有删除？检查要点是允许范围需要绑定路径、动作与有效期；一次行动同意不能自动泛化成无限能力。这一结论来自授权语义，与采用哪一家模型无关。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="16-claude-tools.html" rel="prev"><small>上一章</small>第 16 章 Claude Code：工具接口如何同时服务模型与人</a><a href="18-claude-context.html" rel="next"><small>下一章</small>第 18 章 Claude Code：上下文预算、记录链与后台任务</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

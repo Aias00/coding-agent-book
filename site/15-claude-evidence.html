@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 15 章 Claude Code：先确定材料能证明什么 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/15-claude-evidence.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="15-claude-evidence" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html" aria-current="page">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-15-章-claude-code先确定材料能证明什么" class="level1">
+<h1>第 15 章 Claude Code：先确定材料能证明什么</h1>
+<section id="这份目录不是一个普通开源仓库" class="level2">
+<h2>这份目录不是一个普通开源仓库</h2>
+<p><code>ccsource</code> 同时保存发布包、提取源码、压缩包和已有分析书稿。本书选择 <code>package</code> 下的发布包元数据及 <code>src-extracted/src</code> 中与运行框架直接有关的文件作为研究对象。包名是 <code>@anthropic-ai/claude-code</code>，声明版本 2.1.88。其许可证声明与前三个开源项目不同。<a href="26-sources.html#evidence-a01">A01</a><a href="26-sources.html#evidence-a15">A15</a></p>
+<p>书中只发布原创分析、相对路径、定位信息和文件哈希，不把发布包、source map 或提取源码复制进书籍仓库。源码所有权与本书分析文字的许可也分别说明。这个做法同时让公开仓库保持小巧，并避免把一个研究项目变成原始材料镜像。</p>
+</section>
+<section id="source-map-校验解决了哪个问题" class="level2">
+<h2>Source map 校验解决了哪个问题</h2>
+<p>source map 不只有压缩代码位置映射，还可能包含 <code>sourcesContent</code>。该包的 map 提供源路径与嵌入文本。研究脚本为每个被引用的提取文件找到对应嵌入条目，并逐字节语义上的文本一致比较，同时保存原文件 SHA-256。<a href="26-sources.html#evidence-a02">A02</a></p>
+<p>这个检查证明“本书读取的提取文件与本地 map 嵌入文本一致”。它不证明包一定来自官方分发，也不证明所有文本都对应当前启用分支。后者还受到构建条件、特性门控和运行配置影响。因此书中使用“该发布包可见实现”这样的表述，避免把静态发现直接扩大为所有用户都可用的产品能力。</p>
+</section>
+<section id="query-是最值得先读的路径" class="level2">
+<h2>Query 是最值得先读的路径</h2>
+<p><code>query.ts</code> 通过异步生成器向调用者提供消息与事件。外层 <code>query</code> 委托 <code>queryLoop</code>，内部以显式 state 管理消息、工具上下文、压缩跟踪、输出限制恢复和轮次数等信息。每次循环形成实际请求，消费模型流，然后执行工具，决定后续状态。<a href="26-sources.html#evidence-a03">A03</a></p>
+<p>异步生成器适合逐步暴露进展，但也有自己的生命周期：消费者停止迭代、异常抛出与正常 return 不是一回事。清理和后置动作要覆盖相应退出方式。只看正常 <code>yield</code> 路径会漏掉中断时的行为。</p>
+</section>
+<section id="显式状态减少递归歧义" class="level2">
+<h2>显式状态减少递归歧义</h2>
+<p>该快照把跨迭代状态集中到一个对象，在不同继续分支更新。好处是避免多个局部变量在复杂恢复路径中部分更新、部分保留。代价是必须明确每个字段何时重置，例如输出长度恢复计数和压缩尝试状态不能在所有分支无差别继承。<a href="26-sources.html#evidence-a03">A03</a></p>
+<p>修复案例里，一次模型响应因为输出过长失败，框架需要决定增大输出预算、压缩还是终止。这个决策不等于开启一个全新用户任务；原来的目标、已发生工具结果和恢复计数仍需正确关联。</p>
+</section>
+<section id="产品功能为什么集中出现在循环周围" class="level2">
+<h2>产品功能为什么集中出现在循环周围</h2>
+<p>可见循环接入相关记忆预取、技能发现、工具结果预算和压缩等机制。它们说明运行框架不只执行工具，还管理模型请求中哪些信息值得出现、何时提前准备可以减少等待。<a href="26-sources.html#evidence-a03">A03</a></p>
+<p>不过，预取存在并不证明结果一定进入上下文，特性分支存在也不证明默认启用。分析一个实际用户问题时，需要继续核对门控值、调用源和最终消息组装位置。本书把这些路径作为架构观察，不对未运行验证的分支作可用性承诺。</p>
+</section>
+<section id="阅读提取源码的实践规则" class="level2">
+<h2>阅读提取源码的实践规则</h2>
+<p>遇到同名工具先找主名称与别名，遇到实验功能先找 feature 条件，遇到可疑“服务端机制”先确认是否只是一条客户端注释。提取源码中引用的内部模块、构建工具与专有服务并不自动随材料齐全；无法原样构建，不等于局部执行逻辑不可分析，但必须限制结论范围。</p>
+<p>练习：看到某函数参数有 <code>remote</code>，能否断言它是当前公开功能？检查要点是不能，需要确认构建分支、入口可达性、配置与实际服务。名字是线索，不是完整证据。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="14-pi-durable.html" rel="prev"><small>上一章</small>第 14 章 Pi Durable：把继续执行写成状态机</a><a href="16-claude-tools.html" rel="next"><small>下一章</small>第 16 章 Claude Code：工具接口如何同时服务模型与人</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

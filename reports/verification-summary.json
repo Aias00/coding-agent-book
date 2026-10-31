@@ -1,0 +1,11 @@
+{
+  "edition": "1.0.0",
+  "research_date": "2026-10-30",
+  "epub_sha256": "330212a03bcb0ce2a84bcf90641b7747cf1cca8467859253ab62bf2573987c31",
+  "same_epub_hash_on_repeated_build": true,
+  "epubcheck": {"version": "5.4.0", "fatal": 0, "errors": 0, "warnings": 0},
+  "lab": {"command": "python3 -m unittest discover -s labs -v", "tests": 10, "failures": 0},
+  "browser": {"desktop_width": 1440, "mobile_width": 390, "status": "passed", "report": "browser-validation.json"},
+  "upstream_products_built_or_executed": false,
+  "real_model_cross_product_benchmark": false
+}

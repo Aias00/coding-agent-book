@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 24 章 从研究到自建：一条可维护的实现路线 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/24-design.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="24-design" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html" aria-current="page">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-24-章-从研究到自建一条可维护的实现路线" class="level1">
+<h1>第 24 章 从研究到自建：一条可维护的实现路线</h1>
+<section id="先选择责任范围" class="level2">
+<h2>先选择责任范围</h2>
+<p>如果目标是一个仅供内部使用的编程助手，可以先选择现有运行框架并限制工具；如果目标是服务多个宿主和执行环境的平台，需要更早设计能力接口；如果目标是嵌入已有产品，结构化协议和人机交互可能比终端 UI 更重要。选择架构之前，先明确自己愿意长期维护哪些责任。</p>
+<p>下表是依据本书快照的工程适配建议，不是购买建议或实时产品排名。</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>主要需求</th>
+<th>优先研究的材料</th>
+<th>必须额外核对</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>嵌入结构化编程执行能力</td>
+<td>Codex app-server 与核心协议</td>
+<td>协议版本、部署环境、身份与审批集成</td>
+</tr>
+<tr>
+<td>可替换服务和多种运行宿主</td>
+<td>DeepSeek Harness 能力接口</td>
+<td>profile 组合、插件生命周期、版本稳定性</td>
+</tr>
+<tr>
+<td>自定义循环与工具，控制应用复杂度</td>
+<td>Pi agent-core 与 coding-agent</td>
+<td>存储、授权、取消和所选层级</td>
+</tr>
+<tr>
+<td>跨进程恢复的任务模型</td>
+<td>Pi Durable</td>
+<td>实验性 API、重放政策、外部幂等</td>
+</tr>
+<tr>
+<td>研究产品化工具和权限体验</td>
+<td>Claude Code 可见发布包</td>
+<td>材料范围、构建门控、版权与服务可见性</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="第一阶段完成最小闭环" class="level2">
+<h2>第一阶段：完成最小闭环</h2>
+<p>实现一个模型 adapter、一种消息历史、读取与编辑工具、一个测试执行器和明确的停止条件。所有工具都返回结构化成功或失败。先用确定性假模型验证正常执行，确保任务能从读取走到验证。</p>
+<p>这时不要急于增加插件市场、多 agent 团队或长期记忆。若主循环连模型错误与工具错误都分不清，功能越多只会使恢复更难解释。</p>
+</section>
+<section id="第二阶段建立执行边界" class="level2">
+<h2>第二阶段：建立执行边界</h2>
+<p>加入 schema 校验、工作区限制、工具前置条件与权限范围。分开项目资源可信度和每次行动授权。对于 shell，明确继承哪些环境变量、是否联网、如何停止进程树，以及后台进程由谁回收。</p>
+<p>同时让 UI 区分等待模型、等待工具、等待用户和结果未知。状态准确比动画流畅更重要，因为用户需要根据状态决定是否继续编辑同一文件、关闭会话或等待测试。</p>
+</section>
+<section id="第三阶段把记录做成事实接口" class="level2">
+<h2>第三阶段：把记录做成事实接口</h2>
+<p>为输入、模型尝试、工具调用和结果分配身份，规定提交顺序。保存能够重建模型实际请求的内容或受控引用。压缩应留下边界与恢复元数据；扩展不能在未记录的暗处改变模型可见输入。</p>
+<p>这一阶段还应建立数据保留政策：哪些内容是会话事实，哪些只是临时进度，哪些原始输出需要过期。日志越多并不自动越好，尤其当它包含用户代码和凭据时。</p>
+</section>
+<section id="第四阶段用故障决定持久化方案" class="level2">
+<h2>第四阶段：用故障决定持久化方案</h2>
+<p>先注入中断，再设计恢复。确认工具哪些可以安全重跑，哪些必须核对，哪些需要用户决策。若需求仅是重开会话浏览历史，不必声称拥有持久任务引擎；若需求是跨天执行并继续等待，就需要检查点、任务归属和可持久计时器等机制。</p>
+<p>测试磁盘写入失败、损坏尾部、旧版本格式、部分工具成功和队列待处理输入。把不能自行恢复的状态暴露出来，而不是用无限自动重试隐藏它。</p>
+</section>
+<section id="第五阶段优化关键路径" class="level2">
+<h2>第五阶段：优化关键路径</h2>
+<p>有数据后再做请求预热、并行读取、延迟工具发现与输出裁剪。每次优化都验证任务质量与可解释性。例如更激进截断节省 token，却可能增加重复读取；增加并发缩短单项等待，却可能放大服务限流和共享状态冲突。</p>
+<p>多 agent 应用于可明确分工、能独立验证的子任务。共享文件写入需要归属或隔离，父代理还要验证整合结果。让更多模型同时工作不等于降低总成本，也不自动提高正确率。</p>
+</section>
+<section id="出版工程也是一项可验证任务" class="level2">
+<h2>出版工程也是一项可验证任务</h2>
+<p>本书的交付本身采用同样原则：章节是源数据，构建脚本形成 EPUB 与在线页，校验脚本检查导航和资源，GitHub 工作流发布同一份产物。源码分析证据、实验结果和出版验证分别保存，避免把一次生成成功误写成全部内容已经运行证明。</p>
+<p>维护本书时，应先固定新的源码提交，再复核受影响章节和引用；不能只更新日期。若某个文件移动，更新证据索引之前要确认机制是否也变化。给分析书籍保留版本，比不断把旧结论装进新封面更有价值。</p>
+</section>
+<section id="最后的工程判断" class="level2">
+<h2>最后的工程判断</h2>
+<p>可靠的编程智能体需要同时回答三件事：它为什么提出这项行动，它实际上做了什么，下一次执行应该基于哪些已知事实。模型能力决定提议的质量，运行框架则决定这些提议怎样成为可控制、可观察、可恢复的工程过程。</p>
+<p>继续阅读上游时，带着这三个问题追踪一次真实任务。找到具体状态、事件和执行边界之后，复杂仓库就不再只是庞大的目录，而成为一组能够复核的设计选择。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="23-lab.html" rel="prev"><small>上一章</small>第 23 章 动手实验：构建一个会承认未知的运行框架</a><a href="25-glossary.html" rel="next"><small>下一章</small>附录 A 术语、阅读地图与自检答案</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

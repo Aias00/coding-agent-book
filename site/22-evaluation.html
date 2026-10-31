@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 22 章 评测与可观测性：衡量完成任务的代价 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/22-evaluation.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="22-evaluation" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html" aria-current="page">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-22-章-评测与可观测性衡量完成任务的代价" class="level1">
+<h1>第 22 章 评测与可观测性：衡量完成任务的代价</h1>
+<section id="成功率必须有可执行定义" class="level2">
+<h2>成功率必须有可执行定义</h2>
+<p>“智能体成功修复漏洞”至少需要满足：目标测试通过、相关回归没有失败、改动符合范围、未破坏用户已有工作。如果只检查最终回答含“已修复”，会把自我报告当作事实。若只检查测试通过，又可能奖励删除测试或绕过校验的方案。</p>
+<p>修复案例的最低验收包括：前缀相似的兄弟路径被拒绝，正常子路径被接受，实现与测试都有合理变更，未修改任务之外文件。更严格的评测还需要隐藏测试和代码审查，但隐藏测试本身也可能有误，需要保留复核机制。</p>
+</section>
+<section id="用相同任务比较不同运行框架" class="level2">
+<h2>用相同任务比较不同运行框架</h2>
+<p>比较 harness 时，应尽可能控制模型、温度或采样配置、仓库初态、工具能力、执行权限和预算。模型接入协议不同、可用能力不同，结果就不再只反映运行框架。无法统一的变量应作为条件明确写出。</p>
+<p>每个任务还应重复执行，报告分布而非仅报告最好一次。本书没有实施这样的跨产品真实模型评测，因此不会给出速度、准确率或成本胜负。</p>
+</section>
+<section id="不要只看总耗时" class="level2">
+<h2>不要只看总耗时</h2>
+<p>可以把总时间拆成模型等待、模型生成、工具等待、工具执行、用户审批和恢复开销。流水重叠时这些部分不能简单相加，应根据时间线解释关键路径。一个工具运行二十秒，并不意味着优化它必定让总任务缩短二十秒，可能它原本就与模型生成重叠。</p>
+<p>工具调用数也不是越少越好。少一次读取可能意味着更快，也可能意味着未经核对直接编辑。更有意义的指标是完成质量、无效重复、可恢复失败及单位成功任务成本。</p>
+</section>
+<section id="最小可观测数据集" class="level2">
+<h2>最小可观测数据集</h2>
+<p>设计建议是为会话、用户回合、模型步、尝试和工具调用分别建立身份，记录它们的父子关系。工具记录至少说明名称、开始与结束、结果类别、权限来源、输出是否截断；模型记录至少说明实际路由、耗时、用量和失败类别。敏感参数可用受控引用或脱敏摘要替代。</p>
+<p>这些字段与前文四套系统中的协议、事件、请求头和执行元数据相呼应，但具体字段名称并不通用。适配器应该保留原始语义，不要为了统一图表把“被用户取消”与“执行错误”合并。</p>
+</section>
+<section id="事件记录的三种消费者" class="level2">
+<h2>事件记录的三种消费者</h2>
+<p>产品界面需要可理解进度，调试者需要解释执行因果，合规审计需要知道授权与副作用。三者可以共享关联身份，但不必拿到相同内容。把完整命令、私密代码和访问令牌都发往统一遥测平台，不是必要的可观测性。</p>
+<p>Claude Code 将 progress 与主 transcript 分开，DeepSeek Harness 区分实时帧与持久结算，Pi 将 UI 自定义状态与模型消息区分，这些都说明“所有事件全量永久保存”不是唯一设计。<a href="26-sources.html#evidence-a10">A10</a><a href="26-sources.html#evidence-d04">D04</a><a href="26-sources.html#evidence-p05">P05</a></p>
+</section>
+<section id="建立故障矩阵" class="level2">
+<h2>建立故障矩阵</h2>
+<table>
+<thead>
+<tr>
+<th>故障位置</th>
+<th>要验证的行为</th>
+<th>不足以通过的表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型流中断</td>
+<td>失败尝试可区分，未执行不完整调用</td>
+<td>最终回答仍像成功</td>
+</tr>
+<tr>
+<td>权限拒绝</td>
+<td>工具未产生被禁止副作用</td>
+<td>模型说自己遵守</td>
+</tr>
+<tr>
+<td>工具超时</td>
+<td>进程与结果状态明确</td>
+<td>只显示 timeout 文本</td>
+</tr>
+<tr>
+<td>写后崩溃</td>
+<td>核验现实状态，不盲目重跑</td>
+<td>聊天恢复正常</td>
+</tr>
+<tr>
+<td>压缩后继续</td>
+<td>用户约束和未完成事项保留</td>
+<td>摘要读起来流畅</td>
+</tr>
+<tr>
+<td>多 agent 冲突</td>
+<td>改动有归属，可发现冲突</td>
+<td>每个子任务都自报完成</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="从评测反推实现优先级" class="level2">
+<h2>从评测反推实现优先级</h2>
+<p>若大部分失败来自工具输出过长，先优化输出和检索；若来自重复恢复，先改善幂等与记录；若来自中途纠正失效，先处理队列边界。不要在没有失败分类时先增加 agent 数量或换一套提示词。</p>
+<p>练习：两个系统分别成功 8 次和 9 次，每个只跑 10 个任务，能否得出稳定排名？检查要点是样本、任务分布、随机性和条件都不足，需要更多重复与误差解释。数字精确不等于结论可靠。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="21-recovery.html" rel="prev"><small>上一章</small>第 21 章 可靠性：副作用之后的未知窗口</a><a href="23-lab.html" rel="next"><small>下一章</small>第 23 章 动手实验：构建一个会承认未知的运行框架</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

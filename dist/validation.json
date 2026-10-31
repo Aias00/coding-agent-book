@@ -1,0 +1,14 @@
+{
+  "structural_checks": "passed",
+  "epub_sha256": "330212a03bcb0ce2a84bcf90641b7747cf1cca8467859253ab62bf2573987c31",
+  "chapter_documents": 28,
+  "html_pages": 31,
+  "html_internal_links_checked": 1449,
+  "epub_resources": 41,
+  "epub_spine_items": 31,
+  "epub_internal_links_checked": 805,
+  "source_records": 68,
+  "source_ids_cited": 60,
+  "extracted_implementation_files_matched_to_map": 13,
+  "scope": "Publication structure and internal references; upstream execution and real-model performance are not tested."
+}

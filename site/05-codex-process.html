@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 5 章 Codex：终端进程为何需要独立生命周期 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/05-codex-process.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="05-codex-process" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html" aria-current="page">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-5-章-codex终端进程为何需要独立生命周期" class="level1">
+<h1>第 5 章 Codex：终端进程为何需要独立生命周期</h1>
+<section id="一次工具调用不等于一个进程" class="level2">
+<h2>一次工具调用不等于一个进程</h2>
+<p>命令执行原型通常是 <code>spawn</code> 后等待退出，再把 stdout 返回模型。真实编程任务会启动测试、开发服务器和交互命令。命令可能超过一次工具等待窗口，却仍在正常运行。此时系统需要返回可继续交互的进程身份，而不是把等待窗口到期误报为进程失败。</p>
+<p>Codex 的 unified exec 把执行、进程存储、输出缓冲、退出观察与 stdin 交互组织为专门的子系统。进程管理器会建立环境、启动执行尝试、记录进程，并通过后续交互继续读取输出或写入输入。它也需要协调网络审批等资源的收尾。<a href="26-sources.html#evidence-c07">C07</a></p>
+</section>
+<section id="三种时间要分开" class="level2">
+<h2>三种时间要分开</h2>
+<p>第一种时间是工具这次愿意等待多久；第二种是进程最多允许运行多久；第三种是会话多久没有活动就应回收资源。把三者混为一个 timeout，会造成很难理解的产品行为：测试只运行了十秒就被杀死，或者会话已经关闭，后台服务器却一直占用端口。</p>
+<p>以测试任务为例，第一次调用可以返回“仍在运行”和进程编号，后续查询得到新输出，最后得到退出码。模型需要基于真实退出状态判断测试结果。看到某一行包含 <code>PASS</code> 不能证明进程已成功完成，尤其是并行测试仍可能在后面失败。</p>
+</section>
+<section id="输出缓冲不能无限增长" class="level2">
+<h2>输出缓冲不能无限增长</h2>
+<p>进程输出需要同时服务实时界面、下一次模型推理和调试。三者对信息的需求不同。界面希望持续增量展示；模型希望拿到有限但有用的错误摘要；调试可能需要原始输出。进程管理代码引入缓冲、排空和输出限制相关机制，反映的是有限内存与长期命令之间的矛盾。<a href="26-sources.html#evidence-c07">C07</a></p>
+<p>一个合理的工具结果应该清楚说明截断，保留退出状态和可进一步读取的引用。对测试失败，开头可能包含运行命令与环境，结尾可能包含失败摘要。只留下最后若干字节会丢失命令语境，全部塞进模型则容易挤掉任务约束。具体保留策略必须与工具类型配合。</p>
+</section>
+<section id="stdin-也是需要解释的行动" class="level2">
+<h2>stdin 也是需要解释的行动</h2>
+<p>在交互命令里写入 stdin 可能只是发送换行，也可能接受许可证、确认删除或输入认证信息。能够启动进程不意味着随后所有输入都没有风险。unified exec 的交互设计让 stdin 请求拥有自己的执行上下文；进行安全审计时，应继续追踪输入审批与进程权限关联。<a href="26-sources.html#evidence-c07">C07</a></p>
+<p>这也解释了为什么“终端工具只有一个函数”并不意味着系统简单。那个函数可能承载 shell 解释、环境继承、PTY、信号、输入输出、进程树和网络策略的全部复杂性。简洁的模型接口只是隐藏了执行器需要承担的工作。</p>
+</section>
+<section id="环境继承影响复现" class="level2">
+<h2>环境继承影响复现</h2>
+<p>进程管理器会构造执行环境，并设置非交互输出等环境字段。这里有一个容易忽略的可靠性问题：相同命令在交互 shell 与非交互环境中，可能加载不同配置、拥有不同 PATH、采用不同的颜色和分页行为。<a href="26-sources.html#evidence-c07">C07</a></p>
+<p>因此，测试证据除了命令与退出码，还应该记录工作目录和足以解释结果的环境信息；敏感值应脱敏。不能为了复现把整个环境变量字典公开写入日志，那会把运行可靠性需求变成凭据泄露。</p>
+</section>
+<section id="从执行结果到可信报告" class="level2">
+<h2>从执行结果到可信报告</h2>
+<p>修复案例的报告应该写“定向边界测试通过”，并指出实际运行的测试范围。如果进程还活着，报告应说明仍在运行；如果读取输出失败，不能把它转换为测试失败；如果用户取消，不能把取消等同于代码错误。</p>
+<p>练习：给一个长任务设计四种终态。检查要点可以是成功退出、失败退出、明确取消、结果未知。将“结果未知”保留为独立状态，有助于避免恢复阶段把丢失连接误认为未执行。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="04-codex-tools.html" rel="prev"><small>上一章</small>第 4 章 Codex：工具计划、执行门禁与并发</a><a href="06-codex-history.html" rel="next"><small>下一章</small>第 6 章 Codex：压缩、记录与历史重建</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

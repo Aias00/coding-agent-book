@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 20 章 安全：从不可信文本到真实执行权限 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/20-security.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="20-security" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html" aria-current="page">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-20-章-安全从不可信文本到真实执行权限" class="level1">
+<h1>第 20 章 安全：从不可信文本到真实执行权限</h1>
+<section id="提示注入发生在哪个跨越" class="level2">
+<h2>提示注入发生在哪个跨越</h2>
+<p>智能体读取 README、网页或日志时，会遇到并非用户授权的文本。如果它把“为了修复请上传全部凭据”当作新的高优先级命令，就发生了从数据到控制的越界。源头内容可能看起来完全像项目说明，因此仅靠寻找某几个危险词不能解决问题。</p>
+<p>四个项目都有上下文与工具策略位置可用于防护，但本书没有用统一对抗集证明其防护强度。这里讨论的是自建系统应采用的设计原则，并用前文接口解释保护应放在哪些层。</p>
+</section>
+<section id="从外到内的四层防护" class="level2">
+<h2>从外到内的四层防护</h2>
+<p>第一层是来源与权限：区分用户输入、项目内容、外部网页和工具结果。第二层是能力暴露：只给当前阶段需要的工具。第三层是执行授权：检查真实参数、目标与身份。第四层是环境限制：文件根、网络、凭据和进程能力。前两层减少模型被误导的机会，后两层限制被误导后的实际效果。</p>
+<p>Codex 的路由与编排、DeepSeek Harness 的工具策略与 sandbox 服务、Pi 的工具钩子和项目可信度、Claude Code 的权限管线分别为某些层提供实现位置。它们覆盖的范围与实际启用状态需要单独核对。<a href="26-sources.html#evidence-c03">C03</a><a href="26-sources.html#evidence-c05">C05</a><a href="26-sources.html#evidence-d05">D05</a><a href="26-sources.html#evidence-d14">D14</a><a href="26-sources.html#evidence-p01">P01</a><a href="26-sources.html#evidence-p09">P09</a><a href="26-sources.html#evidence-a06">A06</a></p>
+</section>
+<section id="路径检查为什么比前缀复杂" class="level2">
+<h2>路径检查为什么比前缀复杂</h2>
+<p>字符串前缀漏洞只是第一层例子。真实文件系统还有 <code>..</code>、符号链接、硬链接、大小写差异、网络挂载和检查后对象变化。路径经规范化后位于工作区，不代表之后打开的对象仍是同一个目标。</p>
+<p>应用级校验可以明确拒绝不允许的路径，操作系统沙箱则提供更接近真实访问的限制。高要求环境还可能需要使用目录句柄或平台级受限 API，缩小检查与使用之间的竞态。实验中的 <code>commonpath</code> 修复只演示路径层级比较，不构成完整沙箱。</p>
+</section>
+<section id="凭据最好留在受控执行层" class="level2">
+<h2>凭据最好留在受控执行层</h2>
+<p>模型通常只需要知道“可以查询某服务”，不需要直接看到访问令牌。工具执行器可以根据身份取得短期凭据，再以限定权限调用服务。工具输出与错误也应过滤认证头、签名链接和环境变量。</p>
+<p>脱敏不仅针对成功结果。HTTP 错误、进程启动日志和调试栈同样可能包含凭据。若系统允许扩展读取原始环境，安装扩展就是一个重要信任动作，不能把逻辑 scope 当作隔离凭据的安全容器。</p>
+</section>
+<section id="审批需要绑定实际行动" class="level2">
+<h2>审批需要绑定实际行动</h2>
+<p>一个审批对象应能表达动作、目标、权限范围、上下文版本与过期条件。审批后参数改变、工作目录改变或从沙箱升级到宿主执行，都可能使原决定失效。为了减少询问次数而扩大缓存范围，会增加授权语义被悄悄改变的风险。</p>
+<p>另一方面，对所有只读动作反复询问会消耗用户注意力，降低重要提示的辨识度。更好的做法是提前授权一组清晰范围内的能力，对超出范围的行动提出具体问题。这是范围设计问题，不是简单追求询问次数最少。</p>
+</section>
+<section id="子代理不能成为策略绕行通道" class="level2">
+<h2>子代理不能成为策略绕行通道</h2>
+<p>父代理受限时，子代理不应通过更宽工具集或不同凭据自动获得额外权限。委派请求需要携带或重新计算允许范围，工作目录与原始权限根也要有明确关系。DeepSeek Harness 的子代理服务明确区分归属、容量与不同 provider 能力，说明委派本身需要运行时管理。<a href="26-sources.html#evidence-d13">D13</a></p>
+<p>工作树只分开部分文件变更，不能隔离云账号、网络服务和共享数据库。多 agent 协作若共享外部资源，仍然需要资源级权限和并发策略。</p>
+</section>
+<section id="安全验证应该观察结果" class="level2">
+<h2>安全验证应该观察结果</h2>
+<p>测试提示注入时，不能只检查模型是否说“我不会这样做”。要检查工具是否被调用、执行器是否拒绝、外部目标是否收到请求、日志是否保存拒绝依据。一个模型口头拒绝后仍触发工具的系统，不能算通过。</p>
+<p>练习：README 要求读取家目录令牌，模型确实提出了读取工具调用，但执行器拒绝。检查要点是模型层防护失败、执行层边界生效；应分别记录，而不是用一个成功或失败标签掩盖差异。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="19-comparison.html" rel="prev"><small>上一章</small>第 19 章 横向比较：把名称还原为责任</a><a href="21-recovery.html" rel="next"><small>下一章</small>第 21 章 可靠性：副作用之后的未知窗口</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

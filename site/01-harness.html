@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 1 章 运行框架究竟控制什么 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/01-harness.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="01-harness" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html" aria-current="page">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-1-章-运行框架究竟控制什么" class="level1">
+<h1>第 1 章 运行框架究竟控制什么</h1>
+<section id="从一次修复任务拆出六个环节" class="level2">
+<h2>从一次修复任务拆出六个环节</h2>
+<p>设想一个路径过滤函数只判断字符串是否以工作目录开头。模型收到漏洞描述后，提出搜索函数名的工具调用。运行框架首先把工具名称映射到可执行实现，再验证参数，检查当前身份是否有权读取目录，把搜索结果转换成模型可理解的内容，随后发起第二次请求。模型提出修改时，相同的流程再次发生，只是执行器从搜索变成文件写入。</p>
+<p>可以把这条路径写成：</p>
+<pre class="text"><code>用户意图 → 请求上下文 → 模型输出 → 执行决策
+                                  ↓
+完成报告 ← 验证结果 ← 历史更新 ← 工具副作用</code></pre>
+<p>这里至少存在六个不同职责：保存任务与输入，形成请求，消费流式响应，控制工具执行，提交可恢复状态，决定是否继续。将它们全放进一个 <code>while</code> 循环当然能做出原型，但一旦加入用户中途纠正、并行工具和网络重试，就会产生相互依赖的状态。</p>
+<figure>
+<img src="assets/loop.svg" alt="图 1：一次任务的六项运行时责任。" />
+<figcaption aria-hidden="true">图 1：一次任务的六项运行时责任。</figcaption>
+</figure>
+</section>
+<section id="模型运行框架和环境" class="level2">
+<h2>模型、运行框架和环境</h2>
+<p>模型输出的是一项行动提议。即使工具参数符合 JSON Schema，它也可能指向不存在的文件、过期的分支或未经授权的服务器。运行框架负责检查和解释行动；执行环境负责真正读写文件、启动进程与联网。沙箱则限制这些环境动作可以触及的资源。把这几个概念分开，才能准确描述问题发生的位置。</p>
+<p>例如“模型要求删除工作目录外的文件”属于不可信行动提议；“工具注册表根本没有删除接口”属于能力暴露控制；“删除接口拒绝目录外路径”属于应用级校验；“进程被操作系统阻止写入”属于环境级限制。它们可以叠加，但任何一层都不能自动替代其余层。</p>
+<p>OpenAI 官方对 Codex harness 的说明也把会话状态、工具使用、流式执行和配置的审批/沙箱策略列在运行框架职责内。此处仅用它确认术语；后续实现结论仍以本地提交为准。<a href="https://developers.openai.com/blog/codex-as-a-platform">OpenAI 官方说明</a></p>
+</section>
+<section id="五个容易混淆的单位" class="level2">
+<h2>五个容易混淆的单位</h2>
+<table>
+<thead>
+<tr>
+<th>单位</th>
+<th>本书使用的含义</th>
+<th>容易混淆的对象</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>会话 session/thread</td>
+<td>多次输入与执行的长期容器</td>
+<td>单次 HTTP 请求</td>
+</tr>
+<tr>
+<td>用户回合</td>
+<td>对一次输入承担工作的阶段</td>
+<td>一次模型采样</td>
+</tr>
+<tr>
+<td>模型步 step</td>
+<td>一次模型请求及其工具处理</td>
+<td>整个任务</td>
+</tr>
+<tr>
+<td>尝试 attempt</td>
+<td>同一逻辑请求的一次实际尝试</td>
+<td>已成功提交的消息</td>
+</tr>
+<tr>
+<td>工具调用 call</td>
+<td>有唯一身份的一项执行请求</td>
+<td>进程或工具定义</td>
+</tr>
+</tbody>
+</table>
+<p>不同代码库对 <code>turn</code> 的命名并不一致。DeepSeek Harness 明确区分一个 turn 内的多个 step；Pi 低层循环则在每次助手响应与工具批次周围发出 <code>turn_start</code> / <code>turn_end</code>。因此不能只比较事件名称，必须比较它们覆盖的生命周期。<a href="26-sources.html#evidence-d01">D01</a><a href="26-sources.html#evidence-p01">P01</a></p>
+</section>
+<section id="四个项目提供的观察角度" class="level2">
+<h2>四个项目提供的观察角度</h2>
+<p>Codex 的工具计划会把声明给模型的接口与实际运行时一起组织起来，适合研究“工具可见性是否对应可执行能力”。DeepSeek Harness 的日志能够投影出模型历史，适合研究“上下文为什么能够被审计”。Pi 的低层循环接受转换与准备回调，适合研究“最小内核怎样承载丰富应用”。Claude Code 的工具定义同时包含执行、并发判断和呈现接口，适合研究“产品体验如何进入执行协议”。<a href="26-sources.html#evidence-c03">C03</a><a href="26-sources.html#evidence-c11">C11</a><a href="26-sources.html#evidence-d07">D07</a><a href="26-sources.html#evidence-p02">P02</a><a href="26-sources.html#evidence-a04">A04</a></p>
+<p>这四种组织方式并不互斥。插件框架也需要明确的执行接口，小内核也能构建严格的安全边界，集成式产品也可以把模型访问抽成独立层。真正应比较的是变更传播范围：换一个模型、沙箱或工具实现，需要触及多少原本不相关的模块。</p>
+</section>
+<section id="本章的设计判断" class="level2">
+<h2>本章的设计判断</h2>
+<p>自建运行框架的第一份文档不应该只有功能清单，还应该明确谁拥有状态、谁能够执行副作用、谁能够决定继续。最简单的验收方法是回答三个问题：用户点击停止后哪个组件负责终止进程？模型请求失败后哪个组件判断是否能重试？进程重启后哪个组件知道哪些动作已经发生？</p>
+<p>如果三个问题都只有“主循环处理”这一种回答，需要继续划分职责。不是为了增加抽象，而是为了让每种故障都有可定位的处理者。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="00-preface.html" rel="prev"><small>上一章</small>序言：从会回答问题到能完成工程任务</a><a href="02-evidence-case.html" rel="next"><small>下一章</small>第 2 章 如何读源码，以及贯穿全书的修复案例</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

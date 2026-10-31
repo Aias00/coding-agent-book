@@ -1,0 +1,51 @@
+name: Build, validate and publish book
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out book
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install pinned publishing tools
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/pandoc.deb" https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-1-amd64.deb
+          echo "b4217ac7c54067c442f9d4cd38bcd0c184a43f3e7053431a12263a6f92a33ba2  $RUNNER_TEMP/pandoc.deb" | sha256sum --check
+          sudo dpkg --install "$RUNNER_TEMP/pandoc.deb"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/epubcheck.zip" https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip
+          echo "33350c61038e71dfb3d45a76aed04bf5481e6d5500cb780f6e98db8bbd15a28c  $RUNNER_TEMP/epubcheck.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/epubcheck.zip" -d "$RUNNER_TEMP"
+      - name: Build both reading editions and validate
+        run: |
+          python3 scripts/build.py
+          python3 scripts/check.py
+          python3 -m unittest discover -s labs -v
+          node --check web/reader.js
+          java -jar "$RUNNER_TEMP/epubcheck-5.4.0/epubcheck.jar" dist/coding-agent-engineering.epub --json dist/epubcheck.json
+          cp dist/epubcheck.json site/epubcheck.json
+          cp dist/build-info.json site/build-info.json
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Upload validated reading website
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site/
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

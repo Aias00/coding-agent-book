@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
+<meta name="color-scheme" content="light dark"><title>第 9 章 DeepSeek Harness：有序策略与并行执行 · Coding Agent 工程剖析</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/09-dsh-scheduler.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="09-dsh-scheduler" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html" aria-current="page">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-9-章-deepseek-harness有序策略与并行执行" class="level1">
+<h1>第 9 章 DeepSeek Harness：有序策略与并行执行</h1>
+<section id="并发为什么要拆成准备执行和提交" class="level2">
+<h2>并发为什么要拆成准备、执行和提交</h2>
+<p>DeepSeek Harness 的工具调度器把一批调用保持在模型原始顺序中，先准备，允许实际执行重叠，再按顺序完成后置策略与结果提交。独占调用形成屏障，并行调用进入有上限的滚动池。尚未开始的调用还会重新判断执行模式。<a href="26-sources.html#evidence-d03">D03</a><a href="26-sources.html#evidence-d05">D05</a></p>
+<p>设模型依次提出 A、B、C：A 搜索实现，B 读取测试，C 修改文件。A 与 B 可以重叠，C 需要等相应屏障。若 B 比 A 先完成，界面可以在适当通道反映进度，但最终模型历史不应随机器负载随机改变顺序。稳定提交有利于重放与调试。</p>
+<figure>
+<img src="assets/parallel.svg" alt="图 2：并行执行与有序提交的示意时间线。" />
+<figcaption aria-hidden="true">图 2：并行执行与有序提交的示意时间线。</figcaption>
+</figure>
+</section>
+<section id="为什么策略阶段保持有序" class="level2">
+<h2>为什么策略阶段保持有序</h2>
+<p>准备阶段可能执行参数检查、权限询问和 guard。后置阶段可能修改结果、阻止内容进入模型或注入下一步上下文。这些动作可能影响后续调用，不能简单一起丢进 <code>Promise.all</code>。调度器按顺序推进策略与提交，而把可重叠范围集中在 dispatch/body。<a href="26-sources.html#evidence-d03">D03</a><a href="26-sources.html#evidence-d05">D05</a></p>
+<p>这种方式保证的是框架策略的顺序，不能撤销底层已经并行发生的外部效果。若两个工具都写同一个数据库，结果按顺序进入日志不意味着数据库写入也按相同顺序发生。允许并发之前仍需正确分类工具的共享状态。</p>
+</section>
+<section id="滚动池与重新分类" class="level2">
+<h2>滚动池与重新分类</h2>
+<p>有上限的池在某项工作完成后可以补入后续调用，不需要等整个固定批次都结束。同时，调度器在开始后续调用前重新读取执行模式，因为前面的有序提交可能改变注册状态或策略。重新分类得到独占时，需要先排空当前组再跨越屏障。<a href="26-sources.html#evidence-d03">D03</a></p>
+<p>这种设计兼顾吞吐与动态能力，但也带来队首阻塞：前面的调用很慢时，即使后续结果已完成，按序提交仍可能等待。是否值得，要看稳定历史与策略顺序在产品中的价值，而不是只比较每秒完成多少工具。</p>
+</section>
+<section id="取消时还欠哪些结果" class="level2">
+<h2>取消时还欠哪些结果</h2>
+<p>模型声明了三次调用，用户在第二次准备期间取消。若日志只记录第一项结果，恢复后就可能留下没有结果的调用。该调度器会停止补充新调用，等待已开始的执行收敛，并为未派发调用记录明确的合成错误结果。内部调度错误同样需要排空已开始的任务，由所属 step 补足保守恢复记录。<a href="26-sources.html#evidence-d03">D03</a></p>
+<p>合成结果的含义是“框架没有正常取得这项调用的成功结果”，不能伪装成真实工具输出。尤其对已开始但结果不明的动作，恢复策略仍要核对外部状态。协议完整性与副作用确定性是两个不同问题。</p>
+</section>
+<section id="guard-与可扩展策略" class="level2">
+<h2>Guard 与可扩展策略</h2>
+<p>工具管线提供 pre-execute、execute、post-execute 等扩展位置，同时有不可被普通可扩展策略削弱的执行 guard 机制。这样可以避免一个普通插件因为返回了允许，就覆盖运行框架必须维持的限制。<a href="26-sources.html#evidence-d05">D05</a><a href="26-sources.html#evidence-d06">D06</a></p>
+<p>安全策略最容易出错的地方通常是组合：两个单独看都合理的插件，以不同顺序安装后产生意外效果。必须规定哪种策略可以改参数、哪种只能收紧、哪种结果还需要再次验证。插件化会增加组合数量，因此安全接口要比普通业务事件更明确。</p>
+</section>
+<section id="本章案例的执行判断" class="level2">
+<h2>本章案例的执行判断</h2>
+<p>路径修复中的读取可按安全分类并行，编辑前应核对预期内容，测试依赖编辑完成。若用户在编辑后取消，结果应说明“修改已发生，验证尚未完成”，而不是把整个任务抹成未开始。这样的报告需要调度器、工具结果和会话日志共同保留足够事实。</p>
+<p>练习：A 用时两秒，B 用时一百毫秒，二者并行且按序提交。最早什么时候能提交 B？检查要点是正常情况下等 A 具备可提交结果之后。并行节省了执行时间，却没有取消有序提交带来的等待。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="08-dsh-loop.html" rel="prev"><small>上一章</small>第 8 章 DeepSeek Harness：从日志形成不可变请求</a><a href="10-dsh-durability.html" rel="next"><small>下一章</small>第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

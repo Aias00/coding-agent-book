@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "desktop": "1440×1000",
+  "mobile": "390×844",
+  "checks": [
+    "chapter navigation",
+    "search",
+    "source anchors",
+    "theme",
+    "font size",
+    "reading position",
+    "resume link",
+    "mobile menu",
+    "mobile overflow",
+    "no-JavaScript reading",
+    "EPUB download",
+    "browser errors"
+  ]
+}
