@@ -10,6 +10,8 @@
 
 2.2.0 继续展开权限、沙箱与工具 runtime：跟踪审批与升级重试、单调 guard、hook 输入变化、文件策略与后端完整度、并发准入、取消收敛及长期进程。第 7、8、10、11、12 章分别承载这些实现细节；项目 trust、工具 scope、进程隔离和网络策略明确区分。
 
+2.3.0 继续补齐此前偏概括的六条链路：模型请求重试、流式失败与早执行、文件匹配和并发修改、日志提交及重启恢复、输入接纳和视图重连、子代理创建与清理。实际默认值、模糊回退、writer 屏障、replay 条件和 fork 边界均回到源码说明；附录 A 同时列出仍以方案为主或尚未实测的部分。
+
 ## 你将得到哪些实现材料
 
 每个核心章节给出五类内容：需要解决的具体问题；接口、字段及其所有者；正常流程和失败流程；并发或持久性约束；可执行的验证方法。关键算法用伪代码解释。代码块中标为“设计接口”或“伪代码”的部分是建议方案，不应直接当作完整库使用。
@@ -26,7 +28,7 @@
 
 ## 源码证据与适用范围
 
-研究快照固定在 2026-10-30。三个开源仓库使用完整 Git 提交号；Claude Code 使用本地 2.1.88 发布包，其被引用的 15 个提取实现文件已与 source map 嵌入文本对照。完整出处、90 个证据文件的哈希和定位见附录 B。编号如[C01](#evidence-c01)、[D03](#evidence-d03)用于连接方案与具体参考，不表示所有建议都已经由这些项目实现。
+研究快照固定在 2026-10-30。三个开源仓库使用完整 Git 提交号；Claude Code 使用本地 2.1.88 发布包，其被引用的 15 个提取实现文件已与 source map 嵌入文本对照。完整出处、100 个证据文件的哈希和定位见附录 B。编号如[C01](#evidence-c01)、[D03](#evidence-d03)用于连接方案与具体参考，不表示所有建议都已经由这些项目实现。
 
 源码事实给出项目、快照、函数及证据编号；分析判断说明依据和适用条件；设计建议明确属于本书归纳。源码只能确认客户端行为时，不补写服务端内部机制。固定格式提示与机械边界检查，也不被当作已经证明语义保真的证据。后续修订继续按这一口径处理。
 
@@ -375,6 +377,26 @@ HTTP 库重试两次，SDK 重试两次，循环再重试两次，可能将一�
 
 退避可以采用 full jitter：第 n 次取 `[0, min(cap, base×2^n)]` 内随机等待，同时受总截止时间限制。等待期间可取消，不要用不可中断的长 sleep。若服务返回 Retry-After，先验证数值与上限，再纳入调度。
 
+## 源码细节：重试配置与执行者分开
+
+DeepSeek 的 resolveRetryPolicy 在 provider 路由注册时生成不可变策略，执行重试的是可选 llm-retry 插件，不是仅声明配置就一定自动重试。normal 默认最多重试 5 次，初始延迟 500 ms、最大 10,000 ms、jitterRatio 0.1；默认错误集合包含空响应、RATE_LIMIT、SERVER、TIMEOUT、TRANSPORT。always 则表示持续处理模型请求失败，直到成功、取消或插件结束，不能把 normal 的次数上限套到 always。[D32](#evidence-d32)[D36](#evidence-d36)
+
+实际 localDelay 是有上限的指数退避乘对称随机系数，再限制最大值。它并不是本章前面作为建议展示的 full jitter。第一次本地计算以 500 ms 为基准，默认约在其上下 10% 范围浮动；后续随指数增长，但不会超过上限。可用 providerRetryAfterMs 优先参与决策，normal 遇到超过最大允许等待的值会交还后续恢复链，不是随意无限等待。[D36](#evidence-d36)
+
+```text
+准备路由及其策略
+→ 模型请求失败并记录 attempt
+→ agent/request-error 恢复链
+→ 记录 llm/retry
+→ 可取消的等待
+→ 记录 llm/retry-started
+→ 返回 retry 决定
+```
+
+always 路径还先等待下游恢复：若压缩等恢复器已经决定 retry，就沿用该决定；取消优先于后续调度。代码记录重试事件后才等待，但 session append 的逻辑提交不能直接扩大为操作系统断电持久性，后者仍由存储 provider 决定。这里重试的是模型请求，不是授权对已发生工具动作重新执行。[D36](#evidence-d36)[D04](#evidence-d04)
+
+设计判断：策略归 provider、执行归显式恢复插件，便于解释每次额外请求的来源。自建系统还需把模型、工具和整个任务的重试预算分开；always 适合什么业务应由宿主约束，不能因为单次延迟有上限就声称总费用或总等待已经有界。
+
 ## 凭据解析要晚，凭据内容不要进快照
 
 请求配置记录 credential reference，而不是明文 key。真正发送前解析短期凭据，防止准备很久后令牌已过期。重试时可以刷新凭据，但不要把业务内容与权限范围一起无记录地修改。Pi 的循环在调用前解析 API key，体现了这一时机差异。[P01](#evidence-p01)
@@ -424,11 +446,25 @@ assembler 以稳定的内容块身份或 provider index 保存 name、id、argum
 
 建议先只对被严格分类的读取启用早执行；写入仍等完整响应。即便读取早执行，也要记录它属于哪个 attempt，后续回退后其结果能否进入有效历史。不能因为“只读”就忽略信息泄露、资源消耗或远程查询计费。
 
+## 源码细节：assembler 的宽容边界与失败后的工具
+
+DeepSeek 的 BlockAssembler 按内容块 index 建立状态，保存首次出现顺序，增量累积 text、reasoning 与工具参数。block-end 的完整块成为权威值；首次关闭后忽略迟到 delta 和重复关闭，避免已显示与最终接纳内容继续分叉。它兼容只有 delta、没有显式开始或结束的 adapter，所以不能把前文推荐的严格终态策略说成这份 assembler 的真实要求。[D31](#evidence-d31)
+
+两个终结路径尤其重要：max-tokens 时组装结果去掉全部工具调用，并同步筛选 replay envelope 的块；interruptedBlocks 仅保留非空文本和 reasoning，不保留工具调用。replay 元数据块数若对不上组装块数，会丢弃这份不兼容元数据。这里的 replay 是供应商响应重放信息，不是工具副作用重做。[D31](#evidence-d31)
+
+Pi 的 runLoop 对 length 响应采取另一种表达：不执行其中的工具，而为这些调用形成失败结果，让模型看见请求未被执行。两者都避免执行截断参数，但有效历史形态不同：一个过滤调用，一个保留对应的错误结算，不能用同一个消息 schema 描述。[P01](#evidence-p01)
+
+Claude Code 的 StreamingToolExecutor 则允许完整工具块进入队列、满足条件后开始执行。discard 设置失败 attempt 的丢弃状态，阻止待执行项继续，并在结果处理中生成 streaming_fallback 等合成错误。该状态不等于已经撤销运行中工具产生的外部效果，普通 discard 方法也不能直接当作操作系统进程终止器。[A05](#evidence-a05)
+
+例如编辑已经开始，而同一模型流后续发生 fallback：界面可以撤下失败回答，却不能据此恢复旧文件。设计建议是给早执行动作绑定 attempt 和持久调用身份，记录实际效果；响应回退与动作恢复分别决定。第一版等待完整响应能减少这类状态，但这是本书的取舍建议，不是所有项目都采用的规则。
+
 ## UI 增量与持久事实怎样协调
 
 使用临时 `attempt_id` 发布 start/chunk/end，提交后再附上稳定消息身份。UI 看见 committed end 才把临时节点升级为确定消息；abandoned end 应清楚表示中断或回退。DeepSeek 的实时流与 assistant/message、assistant/attempt 结算可提供参考。[D04](#evidence-d04)
 
 不要把每个字符都作为一次独立数据库事务。可以保留最后结算的完整流、批量写 chunk，或仅在产品确实要求断电恢复到字符级时采用更强存储。不同策略的恢复精度不同，必须写进承诺。
+
+具体到 DeepSeek 的 AssistantStreamAttempt，start/chunk/end 帧使用进程内的 revision 和 attempt identity；push 同时喂给 accumulator 与 assembler。settle 先调用 append，成功取得 SessionSeq 后才发布 committed end；append 抛错则 abandon，发布 abandoned end 并继续抛出。这里能确认的是“先逻辑接纳、后终结通知”，不能把这个同步 append API 当成任意存储的 fsync 完成。[D04](#evidence-d04)
 
 ## 背压与慢消费者
 
@@ -678,6 +714,20 @@ EditRequest {
 取得同文件锁后重新读取。先比较哈希，再检查每个 old_text 在原文件里唯一存在，替换区域互不重叠；按位置从后向前生成新内容，或一次性重建。每项都针对同一份原文，不能让第二个 old_text 匹配第一项修改后的新内容。Pi 的编辑工具与文件变更队列可参考。[P07](#evidence-p07)[P08](#evidence-p08)
 
 若哈希变化，返回 PRECONDITION_CHANGED，附当前版本信息并要求重新读取。不要自动模糊匹配并应用一个“差不多”的 patch。模糊匹配可以作为人工辅助模式，但不应默认获得与精确条件相同的安全承诺。
+
+## 源码细节：Pi 的唯一匹配、模糊回退与进程内队列
+
+前面的 expected_content_hash 接口属于本书建议。Pi 当前 edit schema 实际提供 path 与 edits，每项包含 oldText/newText；它没有要求调用者携带整文件旧哈希。prepareEditArguments 还兼容字符串化数组、单个对象和旧字段形式，转换后再进入验证与执行。[P07](#evidence-p07)
+
+执行时先进入 withFileMutationQueue，再访问并读取文件，移除 BOM、归一化换行，计算全部替换，最后恢复 BOM 和原先检测的换行形式并写入。applyEditsToNormalizedContent 针对同一份原文寻找每项位置，拒绝空 oldText、多处命中、重叠和无变化，按反向位置应用以保持偏移稳定。[P07](#evidence-p07)[P21](#evidence-p21)
+
+一个容易被说明文字掩盖的实际差异是模糊回退：fuzzyFindText 先找精确匹配，失败后对 NFKC、行末空白、引号、破折号及特殊空格作归一化。任何一项需要 fuzzy 时，匹配在统一归一化空间完成，再按受影响行把修改覆盖回原内容，避免把无关行一并规范化。它不是任意语义相似替换，但也不是严格逐字节匹配。[P21](#evidence-p21)
+
+例如模型给出的 ASCII 引号与文件中的弯引号不同，这条回退可能仍找到位置。设计判断：它提高模型编辑容错，但受影响行可能承受规范化，且唯一片段匹配不等于整个文件版本未变化。需要严格补丁来源的宿主，应额外要求版本前置条件或提供可关闭的回退策略，不能只读 description 中的 exact 就承诺严格编辑。
+
+队列使用 realpath 归并现存路径别名，路径尚不存在时使用 resolve 后的键；全局 registrationQueue 只串行登记，不同文件的正文仍能并行。队列是模块内 Map，不能阻止外部编辑器、另一进程或远端写者；默认本地 writeFile 直接调用 fs.writeFile，也没有在这条路径实现临时文件加 rename 的原子替换。[P08](#evidence-p08)[P07](#evidence-p07)
+
+取消也有细节：代码在每次 await 后检查 signal，刻意不在 abort 监听器里立即释放队列，避免文件系统调用未完成就让下一编辑进入。写入后观察到取消仍可能返回错误，而文件已经改变，这正是第 17 章要单独处理真实效果的原因。[P07](#evidence-p07)
 
 ## 为什么检查哈希还要加锁
 
@@ -1315,6 +1365,22 @@ JSONL 易检查、追加与导出，但锁、损坏尾部、索引和多记录�
 
 Codex 的 recorder 明确区分记录、persist、flush；DeepSeek 的 JSONL provider 区分物理格式与逻辑迁移；Pi 会话树说明追加记录后仍需有效历史投影。[C10](#evidence-c10)[D10](#evidence-d10)[D11](#evidence-d11)[P05](#evidence-p05)
 
+## 源码细节：入队、writer 屏障与断电持久性不同
+
+Codex 的 record_canonical_items 把 AddItems 发到 writer 队列，成功返回说明队列接收了请求，不能因此认为文件已经同步。persist 和 flush 发送带 oneshot ack 的命令，等待 writer 完成对应操作；新 rollout 可以延迟物化，文件打开失败时保留待写项，之后再次尝试。writer 的屏障失败会进入恢复模式，重新打开并再试一次，第二次仍失败才返回错误。[C10](#evidence-c10)
+
+write_pending_items_once 在已写项之后推进 ordinal 并移除已完成前缀；write_pending_once 最后调用文件 flush。这些操作不能与数据库多记录事务混为一谈，也不能仅凭 flush 名称推断已经执行 sync_all/fsync、承诺任意断电下不丢记录。跨进程崩溃、系统断电、文件系统故障需要分别核对保证。[C10](#evidence-c10)
+
+因此本书说“提交后通知”，至少要先声明提交层级：宿主逻辑接纳、异步 writer 接收、文件写出、文件与目录同步，是不同完成时刻。控制面需要哪一级确认，应由接口返回值和具体 provider 约定，而不是 UI 看到保存图标就推导全部保证。
+
+## 源码细节：DeepSeek 的整代迁移发布
+
+generation.ts 针对历史 JSONL 代际准备新 artifact，先编码到临时文件并同步，再用当前格式读取验证 bytes 与 digest；发布前核对源文件物理身份，也可以复核关联子会话来源。它处理的是格式迁移，不是工具动作与日志一起原子提交。[D10](#evidence-d10)
+
+POSIX 发布通过 link 将已准备文件排他地放到 currentPath，并同步目录；目标已经存在时不覆盖，而是验证已有胜出者与预期迁移前缀是否一致。Windows 使用对应发布 helper。因此不能简单描述为无条件 rename 覆盖旧日志。旧来源保留，失败阶段有独立清理逻辑。[D10](#evidence-d10)
+
+catalog-migration 还记录子会话源文件的身份，检查 header 中 id、创建时间、父会话、cwd、preset 等字段，并在发布前复核 dev、ino、size 及时间等信息。单个子来源解析失败可以形成 unavailable fact；身份变化则不能静默用另一份材料完成迁移。设计判断：保存来源见证有助于检测准备期间变化，但物理身份核对不是对任意外部恶意写者的全局锁。[D11](#evidence-d11)
+
 ## Schema 迁移与恢复不能混为一谈
 
 未来版本格式应由旧程序明确拒绝。支持旧格式时按版本迁移并验证，避免“字段不存在就猜默认”静默改变历史。损坏尾部是提交完整性问题，旧字段是 schema 问题，两个恢复流程分别设计。
@@ -1357,6 +1423,31 @@ Codex 的 recorder 明确区分记录、persist、flush；DeepSeek 的 JSONL pro
 safe 表示可在定义的输入和环境条件下重跑，例如受限快照读取；reconcile 表示先查询外部状态，例如按幂等键查询远程构建；never 表示结果不明时停止自动执行，例如没有幂等支持的一次发送。
 
 “只读”也不自动 safe：请求可能计费、外部数据可能变化、查询可能消耗限额。safe 的含义应包括允许的重复成本和是否接受新结果。Pi Durable 对工具显式 replay 声明，以及不安全调用中断后返回 interrupted，提供了直接参考。[P12](#evidence-p12)
+
+## 源码细节：Pi Durable 先提交执行意图，再判断能否恢复
+
+这里讨论 packages/durable，与 Pi coding-agent 的普通 runLoop 不是同一个持久执行层。ToolTask 的 call 阶段解析工具、准备并验证参数、运行 beforeTool，随后再次验证 hook 修改后的参数。它把最终参数转换为可存 JSON，并在 runtime.commit 中保存 execute checkpoint 和 replay 策略；未声明时默认为 unsafe，然后才运行工具正文。[P22](#evidence-p22)
+
+```text
+call：解析、hook、最终验证
+→ 提交 execute checkpoint {arguments, replay}
+→ 执行工具
+→ 结算结果
+
+重启遇到 execute：
+  已存 replay 为 safe，且当前工具仍声明 safe → 可重跑
+  否则 → interrupted，说明可能已经部分运行
+```
+
+这个双重检查防止当前工具声明变化后，仅凭旧 safe 继续；它不是完整的实现版本、授权有效期或外部业务幂等证明。恢复执行使用已存最终参数，当前工具和环境仍由该恢复阶段解析。宿主必须确保 safe 声明在这种环境下成立。[P22](#evidence-p22)
+
+嵌套 executeTool 也有持久身份：默认 key 按本次调用顺序分配，也可提供显式稳定 key；NestedCallDoc 保存子任务及结果。safe 外层恢复时可以重新找到已创建的调用，而非无条件再发一次。若重新执行改变了分支和顺序，默认编号未必仍对应同一业务动作，所以自建程序应为重要子调用使用语义稳定的显式 key，并检测输入冲突。后者是设计要求，不是仅有 key 就天然成立。[P22](#evidence-p22)
+
+## 源码细节：重启熔断和取消不是同一条政策
+
+Pi Durable scheduler 的 parked 判断针对没有 abortRequested、且连续 restarts 达到 restartLimit 的任务，停止普通自动运行。提高限制或显式 retry 后才有继续资格；已经有取消意图的任务仍需进入 abort 路径，而非因停放跳过清理。abort handler 自己若反复被重启打断，达到限制后会形成 restart_limit 的 fault，避免无限清理循环。[P23](#evidence-p23)
+
+设计判断：需要分别回答任务能否重跑、子任务能否重新关联、失败后何时停放，以及取消如何收敛。持久 task 框架解决执行连续性，不自动提供外部世界 exactly-once；没有幂等键或可核对后置条件的副作用仍可能落入未知窗口。
 
 ## 幂等键要被真实执行系统识别
 
@@ -1418,6 +1509,14 @@ steer 在当前工作下一个安全边界接纳，follow_up 等当前工作自�
 
 每次 drain 是一次认领，不应因准备前后都检查而多取输入。批量模式与一次一条模式都可行，但 API 与 UI 必须表达一致。
 
+## 源码细节：Pi Durable 在提交边界接纳输入
+
+prepareBoundary 在事务写入前读取当前 head 与 InboxDoc。applyBoundary 区分 postTools 和 final：选择所有 queued write，按配置选择一个或全部 steer，只有 final 才选择 follow-up；queued reset 会把 postTools 提升为 final。先安置 write，再按顺序安置所选用户项，并在同一次提交中记录 submission 对应的 entry、移除队列项。[P13](#evidence-p13)
+
+旧 head 写入若指向已经离开有效范围的条目，会结算为 stale，而不是偷偷恢复被切掉的上下文。withdrawQueuedInputs 将用户项记为 unanswered 并移出队列，queued write 留待后续安置。这些边界使“输入已收到”“已放入有效历史”“本次请求已看见”成为可以区分的事实。[P13](#evidence-p13)
+
+还要注意配置何时冻结。Codex 保留向模型声明工具时的 StepContext；Pi Durable 则按 task phase 解析 agent、hooks 和工具，环境按使用时构建，运行中的实现保持原有归属。后续阶段可以使用更新配置，因此第 7 章的完整不可变 ToolPlan 是本书建议，不能说所有项目都已经冻结到同一粒度。设计者需要明确请求、阶段、调用各自的版本边界。[C06](#evidence-c06)[P12](#evidence-p12)[P22](#evidence-p22)
+
 ## 取消与新输入如何排序
 
 cancel 可以中止当前工作，steer 可以改变后续计划，两者不应自动等价。用户说“这次先停，换个方案”时，先记录停止当前 turn，再把新方案排入新 turn，避免旧工具结束后把结果接到新任务名下。
@@ -1435,6 +1534,8 @@ cancel 可以中止当前工作，steer 可以改变后续计划，两者不应�
 客户端携带 last_seq 订阅。若事件仍保留，发送后续；若游标过旧，返回 snapshot + snapshot_seq，再接后续事件。快照与后续读取必须避免间隙：在固定版本形成快照，之后从该序号继续，不按墙钟时间衔接。
 
 临时流 revision 只在特定 attempt 生命周期有效，进程重启后用持久事实重建，不能承诺临时字符游标继续有效。
+
+源码中也存在不同的重连语义。Pi Durable 的 ConversationViews.attach 在 Session 的串行线上取得当前视图并注册 observer，让它看到后续 publication；watch 受 context 取消控制。README 对视图慢消费者描述为最多保留 100 个未投递帧，超出后用最新完整视图替代；新连接从当前视图开始。它不是本章前面建议的永久 seq 事件重放接口。数字和边界属于该视图接口，不能外推到所有日志与事件消费者。[P24](#evidence-p24)[P12](#evidence-p12)
 
 ## 验收
 
@@ -1600,6 +1701,18 @@ spawn 建新上下文，父代理选择必要信息；fork 继承有效历史，
 
 接口用 capability 表达 continuation、interrupt、resume 和 structured result，不支持时拒绝。把一次新任务伪装成继续，会让用户以为子代理保留了并不存在的上下文。
 
+## 源码细节：DeepSeek 的 fork、驻留与关闭
+
+ForkInProcessProvider 的 completedTurnPrefix 只截取父日志到最后一个 turn/end；当前未配平的工具回合不进入 seed，尚无完整回合时从空 seed 开始。prepareContinuable 在创建时捕获一次，之后恢复子会话重放自己的记录，不重新从父代理更新后的历史再次 fork。因而 fork 不是父会话所有最新内存的实时共享。[D35](#evidence-d35)
+
+SubagentManager.startLocal 在第一次 await 前捕获 descriptor、agent 配置与 delegated policies，避免创建途中父配置变化混入当前子任务。materialize 在启动前从共享根池预留容量，并把正在物化的对象登记到 materializations；失败归还槽位，关闭时也会取消并等待这些尚未驻留的对象。这里的容量针对 activation，不是模型 token 的全局预算。[D34](#evidence-d34)
+
+关闭使用 memoized close Promise，多次 dispose 共享同一次清理。finishDisposal 对本地子代理发取消，等待其空闲、后代关闭与待启动对象回滚，尝试最终 flush，再释放 handle、驻留表、容量和所有权；多个清理失败会被收集，不在第一个异常后遗弃其他分支。外部 provider 则通过对应 run 的 result/dispose 协调，不能假定具有本地 Agent 的同样接口。[D34](#evidence-d34)
+
+生命周期事件还区分持久 child id 与一次驻留 epoch 的 runId。start 只在实际驻留后发布；end 使用同一身份并在清理结果已知后发布。epochStopReason 根据子会话实际消费的工作与 turn 终态推导 max-tokens、aborted、error、refusal 等，不能把 dispose 成功当作任务完成。未运行的已取消队列也会影响 completed 判断；失败与后来取消不能随意互相覆盖。[D33](#evidence-d33)
+
+例如子代理测试失败后父代理要求停止，清理正常结束仍不意味着子任务成功。设计判断：创建、执行结果和资源释放分别记录，可以避免界面上的“已结束”被父代理误写成“已通过验证”。父代理仍需核对实际产物和证据，框架生命周期不替代业务验收。
+
 ## 权限只能继承到上限内
 
 子代理 authority 不大于父代理批准范围，任务 profile 可进一步收紧。若子代理需要更宽权限，应向控制面发独立请求，而非因为父代理“很信任它”自动放行。凭据通过执行目标注入，不复制到子代理 prompt。
@@ -1733,6 +1846,23 @@ IDE buffer 可能尚未落盘，工具读取磁盘却看不到用户屏幕上的
 大量重复读取先检查检索与上下文；大量越权提议先检查来源表达与工具范围；大量未知结果先检查幂等和恢复；大量提交冲突先检查单写者；大量无效测试先检查环境一致性。不要在没有分类时先增加模型、工具和子代理。
 
 把回归任务、记录流和故障 fixture 纳入发布检查，变更 schema 或生命周期时更新对应测试。避免只为新 UI 写截图测试，却让核心恢复协议悄悄改变。
+
+## 阅读源码以后，还有哪些结论必须另行验证
+
+源码可以说明接口与控制流，不能代替外部效果实验。新增的流、编辑、恢复和子代理分析也遵守这个界限：
+
+| 结论类型 | 目前依据 | 仍需怎样取得证据 |
+|---|---|---|
+| 截断响应不进入某条工具执行路径 | assembler 和 loop 的分支 | 用真实 adapter 记录流与派发计数验证组合路径 |
+| 编辑避免错误覆盖 | 匹配、队列和本书前置条件方案 | 注入外部写者、路径别名、取消与写失败，检查实际字节 |
+| 故障恢复不重复业务效果 | checkpoint、replay 条件与参考实验 | 外部服务记录真实动作次数，覆盖去重窗口和结果丢失 |
+| 沙箱阻止越界 | 策略、后端代码及其声明 | 在目标平台运行真实进程测试，分别检查文件、网络与资源 |
+| 压缩保持任务约束 | 提示与机械检查 | 压缩后继续任务，对照约束、验证证据和最终产物 |
+| 多 Agent 更高效 | 生命周期、容量与清理机制 | 在共享总预算下重复运行，报告耗时、成本及整合成功率 |
+
+其中确定性内核测试只覆盖本仓库实现，不直接执行四个上游的这些路径。本次增订扩充的是静态源码分析与证据定位，没有新增“所有产品已经通过故障测试”的结论。
+
+比较实验要冻结仓库初态、模型版本、工具表、权限和预算，同时保存实际请求次数、工具副作用与最终验证。试验中一次故障可能横跨协议、调度和存储，分类记录比只给出最终通过率更能解释改进来自哪里。
 
 ## 本书已经验证的范围
 
@@ -1979,8 +2109,35 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 | 请求等待与进程寿命如何分开 | Codex exec_command_inner；Pi createLocalShellOperations | [C07](#evidence-c07)[P17](#evidence-p17) |
 | 项目 trust 管什么 | Pi resolveProjectTrusted | [P09](#evidence-p09) |
 | 沙箱 adapter 与外部依赖怎样衔接 | Claude wrapWithSandbox | [A18](#evidence-a18) |
+| 模型重试由谁执行、怎样等待 | DeepSeek resolveRetryPolicy、recover | [D32](#evidence-d32)[D36](#evidence-d36) |
+| 截断与中断时留下哪些内容 | DeepSeek BlockAssembler；Pi runLoop | [D31](#evidence-d31)[P01](#evidence-p01) |
+| 流式失败怎样结算 UI 与历史 | DeepSeek AssistantStreamAttempt；Claude StreamingToolExecutor | [D04](#evidence-d04)[A05](#evidence-a05) |
+| 精确编辑说明与模糊回退的差异 | Pi applyEditsToNormalizedContent、withFileMutationQueue | [P21](#evidence-p21)[P08](#evidence-p08) |
+| 日志入队和 flush 分别确认什么 | Codex RolloutRecorder、RolloutWriterState | [C10](#evidence-c10) |
+| 整代格式迁移怎样发布和检测竞争 | DeepSeek publishPreparedMigration、publishCurrentExclusive | [D10](#evidence-d10)[D11](#evidence-d11) |
+| 工具恢复何时可以再次执行 | Pi Durable ToolTask.execute | [P22](#evidence-p22) |
+| 连续重启和清理失败怎样熔断 | Pi Durable scheduler parked、reserve | [P23](#evidence-p23) |
+| steer、follow-up 与 reset 何时接纳 | Pi Durable prepareBoundary、applyBoundary | [P13](#evidence-p13) |
+| UI 重连与慢消费者得到什么 | Pi ConversationViews.watch；Durable README | [P24](#evidence-p24)[P12](#evidence-p12) |
+| fork 是否包含父代理正在执行的回合 | DeepSeek completedTurnPrefix | [D35](#evidence-d35) |
+| 子代理结束是否等于成功 | DeepSeek epochStopReason、finishDisposal | [D33](#evidence-d33)[D34](#evidence-d34) |
 
 第 15 章比较的是这些可检查的客户端设计。摘要准确率、实际费用和真实任务成功率没有统一实验依据，不提供数值排名。
+
+## 问题覆盖与后续证据
+
+2.3.0 补齐此前偏概括的六条链路：模型重试、流式失败、文件修改、持久化与恢复、输入接纳、子代理生命周期。每条都给出实际源码入口、失败分支和建议边界。读者可以据此区分“尚未解释”与“已有解释但没有运行验证”。
+
+| 专题 | 当前说明层次 | 仍未完成的部分 |
+|---|---|---|
+| Tool、Skill、MCP、压缩、权限与 runtime | 固定快照的具体实现与比较 | 全部平台、feature gate 和组合路径的运行验证 |
+| 重试、流、编辑、恢复、输入与子代理 | 2.3.0 增补调用路径和失败边界 | 真实供应商、外部写者与外部服务上的完整故障矩阵 |
+| 检索、向量索引和 LSP | 第 14 章给出自建接口与版本约束 | 未逐一追踪四个项目的全部检索和语言服务实现 |
+| CLI、IDE 与 Web | 第 21 章给出控制协议与版本建议 | 未逐字段比较所有客户端协议和编辑器 buffer 适配 |
+| 分布式租约、fencing 与跨租户执行 | 第 12、18 章给出约束与方案 | 参考内核尚无对应分布式实现及多租户验收 |
+| 真实任务质量与跨产品比较 | 第 22 章说明实验方法 | 尚无统一真实模型数据，不能给成本或成功率排名 |
+
+本表不把尚未实现的扩展写成“再加几个配置即可”。后续修订应增加相应源码与实验，再改变覆盖状态；当前可运行范围仍以第 23 章和附录 C 为准。
 
 
 # 附录 B 源码快照与证据索引
@@ -1998,7 +2155,7 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 
 ## 材料与验证方法
 
-研究脚本记录 90 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
+研究脚本记录 100 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
 
 这些快照作为设计方案的参考依据。可运行参考内核和故障实验见第 23 章；完整方案包含明确标注的扩展设计。未构建四个上游项目或执行统一真实模型评测。
 
@@ -2366,6 +2523,48 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - SHA-256：`282709d0bf789ad3ab9ec6a706f3aeaeac1632d80a08ded507a7b7caff860ac2`
 - [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-local/src/index.ts#L160)
 
+## D31 · deepseek-harness {#evidence-d31}
+
+- 相对路径：`deepseek-harness/packages/llm/llm/src/assembler.ts`
+- 定位：第 38 行，`export class BlockAssembler`；文件共 208 行。
+- SHA-256：`a2d065645058a70195a504b101e9eed23df3eaced3def868d602f3a863b03887`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm/src/assembler.ts#L38)
+
+## D32 · deepseek-harness {#evidence-d32}
+
+- 相对路径：`deepseek-harness/packages/llm/llm/src/retry-policy.ts`
+- 定位：第 149 行，`export function resolveRetryPolicy`；文件共 195 行。
+- SHA-256：`eee2423a0152096026446dd651f29678e0c504f0349a91758720f01f74efa871`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm/src/retry-policy.ts#L149)
+
+## D33 · deepseek-harness {#evidence-d33}
+
+- 相对路径：`deepseek-harness/packages/subagent/subagent/src/lifecycle.ts`
+- 定位：第 134 行，`export function epochStopReason`；文件共 169 行。
+- SHA-256：`3f892ad12033aaf30a8c81b404eefaadb0974bd54d993631970a3c6509a13b92`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/src/lifecycle.ts#L134)
+
+## D34 · deepseek-harness {#evidence-d34}
+
+- 相对路径：`deepseek-harness/packages/subagent/subagent/src/manager.ts`
+- 定位：第 130 行，`export class SubagentManager`；文件共 1493 行。
+- SHA-256：`87298342da27dd567897bd23145fdec7d841e1f26a4e6b5dfa9a48b0b477d03e`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/src/manager.ts#L130)
+
+## D35 · deepseek-harness {#evidence-d35}
+
+- 相对路径：`deepseek-harness/packages/subagent/subagent-fork-in-process/src/index.ts`
+- 定位：第 46 行，`function completedTurnPrefix`；文件共 83 行。
+- SHA-256：`1bc4ff5ff22c20937b6224ffe208a3c37b18c2b741ed77330c27432ce23cf30e`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent-fork-in-process/src/index.ts#L46)
+
+## D36 · deepseek-harness {#evidence-d36}
+
+- 相对路径：`deepseek-harness/packages/llm/llm-retry/src/index.ts`
+- 定位：第 194 行，`async function recover`；文件共 259 行。
+- SHA-256：`d33553781ed2118aab3b249c159fae550d359627565e4714c9ea599e474b8093`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-retry/src/index.ts#L194)
+
 ## P01 · pi {#evidence-p01}
 
 - 相对路径：`pi/packages/agent/src/agent-loop.ts`
@@ -2506,6 +2705,34 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - SHA-256：`0aaad23b26f31f743bdd117754f4c871ea821279bf68f8ba5d71eccbb1602c6a`
 - [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/mcp-servers.ts#L52)
 
+## P21 · pi {#evidence-p21}
+
+- 相对路径：`pi/packages/coding-agent/src/core/tools/edit-diff.ts`
+- 定位：第 300 行，`export function applyEditsToNormalizedContent`；文件共 556 行。
+- SHA-256：`f85a9809eb44b9828236050cf38a8e45933e5cfd583a186e9a0e55a664dd3e8d`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/edit-diff.ts#L300)
+
+## P22 · pi {#evidence-p22}
+
+- 相对路径：`pi/packages/durable/src/harness/tool.ts`
+- 定位：第 125 行，`export const ToolTask`；文件共 964 行。
+- SHA-256：`e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/tool.ts#L125)
+
+## P23 · pi {#evidence-p23}
+
+- 相对路径：`pi/packages/durable/src/harness/scheduler.ts`
+- 定位：第 1366 行，`#parked(record:`；文件共 2507 行。
+- SHA-256：`77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/scheduler.ts#L1366)
+
+## P24 · pi {#evidence-p24}
+
+- 相对路径：`pi/packages/durable/src/harness/view.ts`
+- 定位：第 78 行，`class ConversationViews`；文件共 267 行。
+- SHA-256：`e9d8e017089060a6deab7465630471b0405f563861094971cc10ea351d3a6823`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/view.ts#L78)
+
 ## A01 · ccsource {#evidence-a01}
 
 - 相对路径：`ccsource/package/package.json`
@@ -2639,7 +2866,7 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 
 ## 第二版的定位
 
-本次增订为 2.2.0，研究日期沿用 2026-10-30 的固定源码快照。第一版按项目分别分析；第二版按 AI Coding Agent 的设计与实现问题重写，补充核心接口、状态机、数据结构、算法、故障时序和可运行内核。2.1.0 增补任务流程、Tool/Skill/MCP 机制和四套压缩实现；2.2.0 进一步展开审批、沙箱、runtime、并发、取消和进程生命周期，证据索引扩展至 90 个文件。旧版 EPUB 仍可在对应历史 Release 获取。
+本次增订为 2.3.0，研究日期沿用 2026-10-30 的固定源码快照。第一版按项目分别分析；第二版按 AI Coding Agent 的设计与实现问题重写，补充接口、状态机、算法、故障时序和可运行内核。2.1.0 增补任务流程、Tool/Skill/MCP 与压缩；2.2.0 展开权限、沙箱和 runtime；2.3.0 补齐请求重试、流式失败、编辑、持久化与恢复、输入接纳和子代理生命周期，证据索引扩展至 100 个文件，并列出当前覆盖和未验证部分。旧版 EPUB 仍可在对应历史 Release 获取。
 
 ## 源码与可运行实现的关系
 

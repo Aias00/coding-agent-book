@@ -28,6 +28,18 @@ spawn 建新上下文，父代理选择必要信息；fork 继承有效历史，
 
 接口用 capability 表达 continuation、interrupt、resume 和 structured result，不支持时拒绝。把一次新任务伪装成继续，会让用户以为子代理保留了并不存在的上下文。
 
+## 源码细节：DeepSeek 的 fork、驻留与关闭
+
+ForkInProcessProvider 的 completedTurnPrefix 只截取父日志到最后一个 turn/end；当前未配平的工具回合不进入 seed，尚无完整回合时从空 seed 开始。prepareContinuable 在创建时捕获一次，之后恢复子会话重放自己的记录，不重新从父代理更新后的历史再次 fork。因而 fork 不是父会话所有最新内存的实时共享。〔D35〕
+
+SubagentManager.startLocal 在第一次 await 前捕获 descriptor、agent 配置与 delegated policies，避免创建途中父配置变化混入当前子任务。materialize 在启动前从共享根池预留容量，并把正在物化的对象登记到 materializations；失败归还槽位，关闭时也会取消并等待这些尚未驻留的对象。这里的容量针对 activation，不是模型 token 的全局预算。〔D34〕
+
+关闭使用 memoized close Promise，多次 dispose 共享同一次清理。finishDisposal 对本地子代理发取消，等待其空闲、后代关闭与待启动对象回滚，尝试最终 flush，再释放 handle、驻留表、容量和所有权；多个清理失败会被收集，不在第一个异常后遗弃其他分支。外部 provider 则通过对应 run 的 result/dispose 协调，不能假定具有本地 Agent 的同样接口。〔D34〕
+
+生命周期事件还区分持久 child id 与一次驻留 epoch 的 runId。start 只在实际驻留后发布；end 使用同一身份并在清理结果已知后发布。epochStopReason 根据子会话实际消费的工作与 turn 终态推导 max-tokens、aborted、error、refusal 等，不能把 dispose 成功当作任务完成。未运行的已取消队列也会影响 completed 判断；失败与后来取消不能随意互相覆盖。〔D33〕
+
+例如子代理测试失败后父代理要求停止，清理正常结束仍不意味着子任务成功。设计判断：创建、执行结果和资源释放分别记录，可以避免界面上的“已结束”被父代理误写成“已通过验证”。父代理仍需核对实际产物和证据，框架生命周期不替代业务验收。
+
 ## 权限只能继承到上限内
 
 子代理 authority 不大于父代理批准范围，任务 profile 可进一步收紧。若子代理需要更宽权限，应向控制面发独立请求，而非因为父代理“很信任它”自动放行。凭据通过执行目标注入，不复制到子代理 prompt。

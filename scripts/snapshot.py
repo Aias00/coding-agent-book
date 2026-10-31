@@ -63,6 +63,12 @@ FILES = {
         ('D28', 'packages/sandbox/sandbox/src/index.ts', 'export interface SandboxExecutionPolicy'),
         ('D29', 'packages/sandbox/sandbox-policy/src/index.ts', 'resolve(request: SandboxPolicyRequest'),
         ('D30', 'packages/sandbox/sandbox-local/src/index.ts', 'const PLATFORM_CHAINS'),
+        ('D31', 'packages/llm/llm/src/assembler.ts', 'export class BlockAssembler'),
+        ('D32', 'packages/llm/llm/src/retry-policy.ts', 'export function resolveRetryPolicy'),
+        ('D33', 'packages/subagent/subagent/src/lifecycle.ts', 'export function epochStopReason'),
+        ('D34', 'packages/subagent/subagent/src/manager.ts', 'export class SubagentManager'),
+        ('D35', 'packages/subagent/subagent-fork-in-process/src/index.ts', 'function completedTurnPrefix'),
+        ('D36', 'packages/llm/llm-retry/src/index.ts', 'async function recover'),
     ],
     'pi': [
         ('P01', 'packages/agent/src/agent-loop.ts', 'async function runLoop'),
@@ -85,6 +91,10 @@ FILES = {
         ('P18', 'packages/coding-agent/src/modes/rpc/rpc-mode.ts', ''),
         ('P19', 'packages/coding-agent/src/core/skills.ts', 'function formatSkillsForPrompt'),
         ('P20', 'packages/coding-agent/src/core/mcp-servers.ts', 'export type McpExposure'),
+        ('P21', 'packages/coding-agent/src/core/tools/edit-diff.ts', 'export function applyEditsToNormalizedContent'),
+        ('P22', 'packages/durable/src/harness/tool.ts', 'export const ToolTask'),
+        ('P23', 'packages/durable/src/harness/scheduler.ts', '#parked(record:'),
+        ('P24', 'packages/durable/src/harness/view.ts', 'class ConversationViews'),
     ],
     'ccsource': [
         ('A01', 'package/package.json', '"version"'),

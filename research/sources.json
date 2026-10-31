@@ -1,5 +1,5 @@
 {
-  "edition": "2.2.0",
+  "edition": "2.3.0",
   "review_date": "2026-10-30",
   "projects": {
     "codex": {
@@ -545,6 +545,66 @@
       "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-local/src/index.ts#L160"
     },
     {
+      "id": "D31",
+      "project": "deepseek-harness",
+      "path": "packages/llm/llm/src/assembler.ts",
+      "sha256": "a2d065645058a70195a504b101e9eed23df3eaced3def868d602f3a863b03887",
+      "lines": 208,
+      "locator": "export class BlockAssembler",
+      "line": 38,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm/src/assembler.ts#L38"
+    },
+    {
+      "id": "D32",
+      "project": "deepseek-harness",
+      "path": "packages/llm/llm/src/retry-policy.ts",
+      "sha256": "eee2423a0152096026446dd651f29678e0c504f0349a91758720f01f74efa871",
+      "lines": 195,
+      "locator": "export function resolveRetryPolicy",
+      "line": 149,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm/src/retry-policy.ts#L149"
+    },
+    {
+      "id": "D33",
+      "project": "deepseek-harness",
+      "path": "packages/subagent/subagent/src/lifecycle.ts",
+      "sha256": "3f892ad12033aaf30a8c81b404eefaadb0974bd54d993631970a3c6509a13b92",
+      "lines": 169,
+      "locator": "export function epochStopReason",
+      "line": 134,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/src/lifecycle.ts#L134"
+    },
+    {
+      "id": "D34",
+      "project": "deepseek-harness",
+      "path": "packages/subagent/subagent/src/manager.ts",
+      "sha256": "87298342da27dd567897bd23145fdec7d841e1f26a4e6b5dfa9a48b0b477d03e",
+      "lines": 1493,
+      "locator": "export class SubagentManager",
+      "line": 130,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/src/manager.ts#L130"
+    },
+    {
+      "id": "D35",
+      "project": "deepseek-harness",
+      "path": "packages/subagent/subagent-fork-in-process/src/index.ts",
+      "sha256": "1bc4ff5ff22c20937b6224ffe208a3c37b18c2b741ed77330c27432ce23cf30e",
+      "lines": 83,
+      "locator": "function completedTurnPrefix",
+      "line": 46,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent-fork-in-process/src/index.ts#L46"
+    },
+    {
+      "id": "D36",
+      "project": "deepseek-harness",
+      "path": "packages/llm/llm-retry/src/index.ts",
+      "sha256": "d33553781ed2118aab3b249c159fae550d359627565e4714c9ea599e474b8093",
+      "lines": 259,
+      "locator": "async function recover",
+      "line": 194,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-retry/src/index.ts#L194"
+    },
+    {
       "id": "P01",
       "project": "pi",
       "path": "packages/agent/src/agent-loop.ts",
@@ -743,6 +803,46 @@
       "locator": "export type McpExposure",
       "line": 52,
       "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/mcp-servers.ts#L52"
+    },
+    {
+      "id": "P21",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/tools/edit-diff.ts",
+      "sha256": "f85a9809eb44b9828236050cf38a8e45933e5cfd583a186e9a0e55a664dd3e8d",
+      "lines": 556,
+      "locator": "export function applyEditsToNormalizedContent",
+      "line": 300,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/edit-diff.ts#L300"
+    },
+    {
+      "id": "P22",
+      "project": "pi",
+      "path": "packages/durable/src/harness/tool.ts",
+      "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9",
+      "lines": 964,
+      "locator": "export const ToolTask",
+      "line": 125,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/tool.ts#L125"
+    },
+    {
+      "id": "P23",
+      "project": "pi",
+      "path": "packages/durable/src/harness/scheduler.ts",
+      "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab",
+      "lines": 2507,
+      "locator": "#parked(record:",
+      "line": 1366,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/scheduler.ts#L1366"
+    },
+    {
+      "id": "P24",
+      "project": "pi",
+      "path": "packages/durable/src/harness/view.ts",
+      "sha256": "e9d8e017089060a6deab7465630471b0405f563861094971cc10ea351d3a6823",
+      "lines": 267,
+      "locator": "class ConversationViews",
+      "line": 78,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/view.ts#L78"
     },
     {
       "id": "A01",

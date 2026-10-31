@@ -36,11 +36,25 @@ assembler 以稳定的内容块身份或 provider index 保存 name、id、argum
 
 建议先只对被严格分类的读取启用早执行；写入仍等完整响应。即便读取早执行，也要记录它属于哪个 attempt，后续回退后其结果能否进入有效历史。不能因为“只读”就忽略信息泄露、资源消耗或远程查询计费。
 
+## 源码细节：assembler 的宽容边界与失败后的工具
+
+DeepSeek 的 BlockAssembler 按内容块 index 建立状态，保存首次出现顺序，增量累积 text、reasoning 与工具参数。block-end 的完整块成为权威值；首次关闭后忽略迟到 delta 和重复关闭，避免已显示与最终接纳内容继续分叉。它兼容只有 delta、没有显式开始或结束的 adapter，所以不能把前文推荐的严格终态策略说成这份 assembler 的真实要求。〔D31〕
+
+两个终结路径尤其重要：max-tokens 时组装结果去掉全部工具调用，并同步筛选 replay envelope 的块；interruptedBlocks 仅保留非空文本和 reasoning，不保留工具调用。replay 元数据块数若对不上组装块数，会丢弃这份不兼容元数据。这里的 replay 是供应商响应重放信息，不是工具副作用重做。〔D31〕
+
+Pi 的 runLoop 对 length 响应采取另一种表达：不执行其中的工具，而为这些调用形成失败结果，让模型看见请求未被执行。两者都避免执行截断参数，但有效历史形态不同：一个过滤调用，一个保留对应的错误结算，不能用同一个消息 schema 描述。〔P01〕
+
+Claude Code 的 StreamingToolExecutor 则允许完整工具块进入队列、满足条件后开始执行。discard 设置失败 attempt 的丢弃状态，阻止待执行项继续，并在结果处理中生成 streaming_fallback 等合成错误。该状态不等于已经撤销运行中工具产生的外部效果，普通 discard 方法也不能直接当作操作系统进程终止器。〔A05〕
+
+例如编辑已经开始，而同一模型流后续发生 fallback：界面可以撤下失败回答，却不能据此恢复旧文件。设计建议是给早执行动作绑定 attempt 和持久调用身份，记录实际效果；响应回退与动作恢复分别决定。第一版等待完整响应能减少这类状态，但这是本书的取舍建议，不是所有项目都采用的规则。
+
 ## UI 增量与持久事实怎样协调
 
 使用临时 `attempt_id` 发布 start/chunk/end，提交后再附上稳定消息身份。UI 看见 committed end 才把临时节点升级为确定消息；abandoned end 应清楚表示中断或回退。DeepSeek 的实时流与 assistant/message、assistant/attempt 结算可提供参考。〔D04〕
 
 不要把每个字符都作为一次独立数据库事务。可以保留最后结算的完整流、批量写 chunk，或仅在产品确实要求断电恢复到字符级时采用更强存储。不同策略的恢复精度不同，必须写进承诺。
+
+具体到 DeepSeek 的 AssistantStreamAttempt，start/chunk/end 帧使用进程内的 revision 和 attempt identity；push 同时喂给 accumulator 与 assembler。settle 先调用 append，成功取得 SessionSeq 后才发布 committed end；append 抛错则 abandon，发布 abandoned end 并继续抛出。这里能确认的是“先逻辑接纳、后终结通知”，不能把这个同步 append API 当成任意存储的 fsync 完成。〔D04〕
 
 ## 背压与慢消费者
 

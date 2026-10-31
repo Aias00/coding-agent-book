@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 90 项源码依据。">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 100 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>第 6 章 流式协议：字节、内容块与可执行行动 · AI Coding Agent 设计与实现</title>
 <link rel="canonical" href="https://aias00.github.io/coding-agent-book/06-streaming.html"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="06-streaming" data-edition="2.2.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="06-streaming" data-edition="2.3.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
 <a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
 <aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html" aria-current="page">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：四份源码的实现、边界与取舍</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 2.2.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<div class="sidebar-footer"><span>第 2.3.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
 <main id="main" tabindex="-1"><article><section id="第-6-章-流式协议字节内容块与可执行行动" class="level1">
 <h1>第 6 章 流式协议：字节、内容块与可执行行动</h1>
 <section id="四个完成时刻必须区分" class="level2">
@@ -40,10 +40,19 @@ while a complete line exists:
 <p>保守方案等 ResponseComplete 后才接受调用，状态简单。低延迟方案在完整工具块就绪后提前执行，但必须面对后续流失败：同一响应回退或重试时，之前的工具可能已经产生效果。Claude Code 的 StreamingToolExecutor 有丢弃、取消与合成结果机制，可作为复杂度参考。<a href="26-sources.html#evidence-a05">A05</a></p>
 <p>建议先只对被严格分类的读取启用早执行；写入仍等完整响应。即便读取早执行，也要记录它属于哪个 attempt，后续回退后其结果能否进入有效历史。不能因为“只读”就忽略信息泄露、资源消耗或远程查询计费。</p>
 </section>
+<section id="源码细节assembler-的宽容边界与失败后的工具" class="level2">
+<h2>源码细节：assembler 的宽容边界与失败后的工具</h2>
+<p>DeepSeek 的 BlockAssembler 按内容块 index 建立状态，保存首次出现顺序，增量累积 text、reasoning 与工具参数。block-end 的完整块成为权威值；首次关闭后忽略迟到 delta 和重复关闭，避免已显示与最终接纳内容继续分叉。它兼容只有 delta、没有显式开始或结束的 adapter，所以不能把前文推荐的严格终态策略说成这份 assembler 的真实要求。<a href="26-sources.html#evidence-d31">D31</a></p>
+<p>两个终结路径尤其重要：max-tokens 时组装结果去掉全部工具调用，并同步筛选 replay envelope 的块；interruptedBlocks 仅保留非空文本和 reasoning，不保留工具调用。replay 元数据块数若对不上组装块数，会丢弃这份不兼容元数据。这里的 replay 是供应商响应重放信息，不是工具副作用重做。<a href="26-sources.html#evidence-d31">D31</a></p>
+<p>Pi 的 runLoop 对 length 响应采取另一种表达：不执行其中的工具，而为这些调用形成失败结果，让模型看见请求未被执行。两者都避免执行截断参数，但有效历史形态不同：一个过滤调用，一个保留对应的错误结算，不能用同一个消息 schema 描述。<a href="26-sources.html#evidence-p01">P01</a></p>
+<p>Claude Code 的 StreamingToolExecutor 则允许完整工具块进入队列、满足条件后开始执行。discard 设置失败 attempt 的丢弃状态，阻止待执行项继续，并在结果处理中生成 streaming_fallback 等合成错误。该状态不等于已经撤销运行中工具产生的外部效果，普通 discard 方法也不能直接当作操作系统进程终止器。<a href="26-sources.html#evidence-a05">A05</a></p>
+<p>例如编辑已经开始，而同一模型流后续发生 fallback：界面可以撤下失败回答，却不能据此恢复旧文件。设计建议是给早执行动作绑定 attempt 和持久调用身份，记录实际效果；响应回退与动作恢复分别决定。第一版等待完整响应能减少这类状态，但这是本书的取舍建议，不是所有项目都采用的规则。</p>
+</section>
 <section id="ui-增量与持久事实怎样协调" class="level2">
 <h2>UI 增量与持久事实怎样协调</h2>
 <p>使用临时 <code>attempt_id</code> 发布 start/chunk/end，提交后再附上稳定消息身份。UI 看见 committed end 才把临时节点升级为确定消息；abandoned end 应清楚表示中断或回退。DeepSeek 的实时流与 assistant/message、assistant/attempt 结算可提供参考。<a href="26-sources.html#evidence-d04">D04</a></p>
 <p>不要把每个字符都作为一次独立数据库事务。可以保留最后结算的完整流、批量写 chunk，或仅在产品确实要求断电恢复到字符级时采用更强存储。不同策略的恢复精度不同，必须写进承诺。</p>
+<p>具体到 DeepSeek 的 AssistantStreamAttempt，start/chunk/end 帧使用进程内的 revision 和 attempt identity；push 同时喂给 accumulator 与 assembler。settle 先调用 append，成功取得 SessionSeq 后才发布 committed end；append 抛错则 abandon，发布 abandoned end 并继续抛出。这里能确认的是“先逻辑接纳、后终结通知”，不能把这个同步 append API 当成任意存储的 fsync 完成。<a href="26-sources.html#evidence-d04">D04</a></p>
 </section>
 <section id="背压与慢消费者" class="level2">
 <h2>背压与慢消费者</h2>

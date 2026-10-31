@@ -24,6 +24,31 @@ safe 表示可在定义的输入和环境条件下重跑，例如受限快照读
 
 “只读”也不自动 safe：请求可能计费、外部数据可能变化、查询可能消耗限额。safe 的含义应包括允许的重复成本和是否接受新结果。Pi Durable 对工具显式 replay 声明，以及不安全调用中断后返回 interrupted，提供了直接参考。〔P12〕
 
+## 源码细节：Pi Durable 先提交执行意图，再判断能否恢复
+
+这里讨论 packages/durable，与 Pi coding-agent 的普通 runLoop 不是同一个持久执行层。ToolTask 的 call 阶段解析工具、准备并验证参数、运行 beforeTool，随后再次验证 hook 修改后的参数。它把最终参数转换为可存 JSON，并在 runtime.commit 中保存 execute checkpoint 和 replay 策略；未声明时默认为 unsafe，然后才运行工具正文。〔P22〕
+
+```text
+call：解析、hook、最终验证
+→ 提交 execute checkpoint {arguments, replay}
+→ 执行工具
+→ 结算结果
+
+重启遇到 execute：
+  已存 replay 为 safe，且当前工具仍声明 safe → 可重跑
+  否则 → interrupted，说明可能已经部分运行
+```
+
+这个双重检查防止当前工具声明变化后，仅凭旧 safe 继续；它不是完整的实现版本、授权有效期或外部业务幂等证明。恢复执行使用已存最终参数，当前工具和环境仍由该恢复阶段解析。宿主必须确保 safe 声明在这种环境下成立。〔P22〕
+
+嵌套 executeTool 也有持久身份：默认 key 按本次调用顺序分配，也可提供显式稳定 key；NestedCallDoc 保存子任务及结果。safe 外层恢复时可以重新找到已创建的调用，而非无条件再发一次。若重新执行改变了分支和顺序，默认编号未必仍对应同一业务动作，所以自建程序应为重要子调用使用语义稳定的显式 key，并检测输入冲突。后者是设计要求，不是仅有 key 就天然成立。〔P22〕
+
+## 源码细节：重启熔断和取消不是同一条政策
+
+Pi Durable scheduler 的 parked 判断针对没有 abortRequested、且连续 restarts 达到 restartLimit 的任务，停止普通自动运行。提高限制或显式 retry 后才有继续资格；已经有取消意图的任务仍需进入 abort 路径，而非因停放跳过清理。abort handler 自己若反复被重启打断，达到限制后会形成 restart_limit 的 fault，避免无限清理循环。〔P23〕
+
+设计判断：需要分别回答任务能否重跑、子任务能否重新关联、失败后何时停放，以及取消如何收敛。持久 task 框架解决执行连续性，不自动提供外部世界 exactly-once；没有幂等键或可核对后置条件的副作用仍可能落入未知窗口。
+
 ## 幂等键要被真实执行系统识别
 
 本地 call_id 只关联日志。外部服务必须接收并记住幂等键，才能把重试关联到原动作。建议将 tenant、业务操作、稳定调用身份与输入摘要组合，服务对相同键不同输入返回冲突。

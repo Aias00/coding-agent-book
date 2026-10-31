@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 90 项源码依据。">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 100 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>第 5 章 模型适配层：统一语义，显式保留差异 · AI Coding Agent 设计与实现</title>
 <link rel="canonical" href="https://aias00.github.io/coding-agent-book/05-model-adapter.html"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="05-model-adapter" data-edition="2.2.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="05-model-adapter" data-edition="2.3.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
 <a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
 <aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html" aria-current="page">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：四份源码的实现、边界与取舍</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 2.2.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<div class="sidebar-footer"><span>第 2.3.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
 <main id="main" tabindex="-1"><article><section id="第-5-章-模型适配层统一语义显式保留差异" class="level1">
 <h1>第 5 章 模型适配层：统一语义，显式保留差异</h1>
 <section id="adapter-应该拥有哪部分职责" class="level2">
@@ -82,6 +82,20 @@ ModelEvent = TextDelta | ToolArgumentsDelta | ToolCallComplete
 <h2>隐藏重试会破坏可观察性</h2>
 <p>HTTP 库重试两次，SDK 重试两次，循环再重试两次，可能将一次逻辑请求放大。推荐选定一个重试所有者，记录 attempt 与总预算；其他层只做明确允许的传输重连。DeepSeek 的 pi-ai 适配文档明确区分框架可见重试与 SDK 重试。<a href="26-sources.html#evidence-d18">D18</a></p>
 <p>退避可以采用 full jitter：第 n 次取 <code>[0, min(cap, base×2^n)]</code> 内随机等待，同时受总截止时间限制。等待期间可取消，不要用不可中断的长 sleep。若服务返回 Retry-After，先验证数值与上限，再纳入调度。</p>
+</section>
+<section id="源码细节重试配置与执行者分开" class="level2">
+<h2>源码细节：重试配置与执行者分开</h2>
+<p>DeepSeek 的 resolveRetryPolicy 在 provider 路由注册时生成不可变策略，执行重试的是可选 llm-retry 插件，不是仅声明配置就一定自动重试。normal 默认最多重试 5 次，初始延迟 500 ms、最大 10,000 ms、jitterRatio 0.1；默认错误集合包含空响应、RATE_LIMIT、SERVER、TIMEOUT、TRANSPORT。always 则表示持续处理模型请求失败，直到成功、取消或插件结束，不能把 normal 的次数上限套到 always。<a href="26-sources.html#evidence-d32">D32</a><a href="26-sources.html#evidence-d36">D36</a></p>
+<p>实际 localDelay 是有上限的指数退避乘对称随机系数，再限制最大值。它并不是本章前面作为建议展示的 full jitter。第一次本地计算以 500 ms 为基准，默认约在其上下 10% 范围浮动；后续随指数增长，但不会超过上限。可用 providerRetryAfterMs 优先参与决策，normal 遇到超过最大允许等待的值会交还后续恢复链，不是随意无限等待。<a href="26-sources.html#evidence-d36">D36</a></p>
+<pre class="text"><code>准备路由及其策略
+→ 模型请求失败并记录 attempt
+→ agent/request-error 恢复链
+→ 记录 llm/retry
+→ 可取消的等待
+→ 记录 llm/retry-started
+→ 返回 retry 决定</code></pre>
+<p>always 路径还先等待下游恢复：若压缩等恢复器已经决定 retry，就沿用该决定；取消优先于后续调度。代码记录重试事件后才等待，但 session append 的逻辑提交不能直接扩大为操作系统断电持久性，后者仍由存储 provider 决定。这里重试的是模型请求，不是授权对已发生工具动作重新执行。<a href="26-sources.html#evidence-d36">D36</a><a href="26-sources.html#evidence-d04">D04</a></p>
+<p>设计判断：策略归 provider、执行归显式恢复插件，便于解释每次额外请求的来源。自建系统还需把模型、工具和整个任务的重试预算分开；always 适合什么业务应由宿主约束，不能因为单次延迟有上限就声称总费用或总等待已经有界。</p>
 </section>
 <section id="凭据解析要晚凭据内容不要进快照" class="level2">
 <h2>凭据解析要晚，凭据内容不要进快照</h2>

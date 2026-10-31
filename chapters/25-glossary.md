@@ -83,5 +83,32 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 | 请求等待与进程寿命如何分开 | Codex exec_command_inner；Pi createLocalShellOperations | 〔C07〕〔P17〕 |
 | 项目 trust 管什么 | Pi resolveProjectTrusted | 〔P09〕 |
 | 沙箱 adapter 与外部依赖怎样衔接 | Claude wrapWithSandbox | 〔A18〕 |
+| 模型重试由谁执行、怎样等待 | DeepSeek resolveRetryPolicy、recover | 〔D32〕〔D36〕 |
+| 截断与中断时留下哪些内容 | DeepSeek BlockAssembler；Pi runLoop | 〔D31〕〔P01〕 |
+| 流式失败怎样结算 UI 与历史 | DeepSeek AssistantStreamAttempt；Claude StreamingToolExecutor | 〔D04〕〔A05〕 |
+| 精确编辑说明与模糊回退的差异 | Pi applyEditsToNormalizedContent、withFileMutationQueue | 〔P21〕〔P08〕 |
+| 日志入队和 flush 分别确认什么 | Codex RolloutRecorder、RolloutWriterState | 〔C10〕 |
+| 整代格式迁移怎样发布和检测竞争 | DeepSeek publishPreparedMigration、publishCurrentExclusive | 〔D10〕〔D11〕 |
+| 工具恢复何时可以再次执行 | Pi Durable ToolTask.execute | 〔P22〕 |
+| 连续重启和清理失败怎样熔断 | Pi Durable scheduler parked、reserve | 〔P23〕 |
+| steer、follow-up 与 reset 何时接纳 | Pi Durable prepareBoundary、applyBoundary | 〔P13〕 |
+| UI 重连与慢消费者得到什么 | Pi ConversationViews.watch；Durable README | 〔P24〕〔P12〕 |
+| fork 是否包含父代理正在执行的回合 | DeepSeek completedTurnPrefix | 〔D35〕 |
+| 子代理结束是否等于成功 | DeepSeek epochStopReason、finishDisposal | 〔D33〕〔D34〕 |
 
 第 15 章比较的是这些可检查的客户端设计。摘要准确率、实际费用和真实任务成功率没有统一实验依据，不提供数值排名。
+
+## 问题覆盖与后续证据
+
+2.3.0 补齐此前偏概括的六条链路：模型重试、流式失败、文件修改、持久化与恢复、输入接纳、子代理生命周期。每条都给出实际源码入口、失败分支和建议边界。读者可以据此区分“尚未解释”与“已有解释但没有运行验证”。
+
+| 专题 | 当前说明层次 | 仍未完成的部分 |
+|---|---|---|
+| Tool、Skill、MCP、压缩、权限与 runtime | 固定快照的具体实现与比较 | 全部平台、feature gate 和组合路径的运行验证 |
+| 重试、流、编辑、恢复、输入与子代理 | 2.3.0 增补调用路径和失败边界 | 真实供应商、外部写者与外部服务上的完整故障矩阵 |
+| 检索、向量索引和 LSP | 第 14 章给出自建接口与版本约束 | 未逐一追踪四个项目的全部检索和语言服务实现 |
+| CLI、IDE 与 Web | 第 21 章给出控制协议与版本建议 | 未逐字段比较所有客户端协议和编辑器 buffer 适配 |
+| 分布式租约、fencing 与跨租户执行 | 第 12、18 章给出约束与方案 | 参考内核尚无对应分布式实现及多租户验收 |
+| 真实任务质量与跨产品比较 | 第 22 章说明实验方法 | 尚无统一真实模型数据，不能给成本或成功率排名 |
+
+本表不把尚未实现的扩展写成“再加几个配置即可”。后续修订应增加相应源码与实验，再改变覆盖状态；当前可运行范围仍以第 23 章和附录 C 为准。

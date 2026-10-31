@@ -1,10 +1,10 @@
 {
-  "edition": "2.2.0",
+  "edition": "2.3.0",
   "chapters": 28,
   "main_chapters": 24,
-  "body_characters_excluding_source_index": 66400,
-  "chinese_characters_excluding_source_index": 38704,
-  "evidence_files": 90,
-  "epub_sha256": "11749fd8a339d1ecfedd990328fc1781f76a2d2f23f47a7cbfc666d20e63e4b9",
+  "body_characters_excluding_source_index": 75108,
+  "chinese_characters_excluding_source_index": 43501,
+  "evidence_files": 100,
+  "epub_sha256": "8ef44cf6c51bf6705e4f0af87d41da1c0ed93bf9d0a523067ae1a72fc50a3b9c",
   "pandoc": "pandoc 3.12.1"
 }

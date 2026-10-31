@@ -13,7 +13,7 @@
 
 ## 材料与验证方法
 
-研究脚本记录 90 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
+研究脚本记录 100 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
 
 这些快照作为设计方案的参考依据。可运行参考内核和故障实验见第 23 章；完整方案包含明确标注的扩展设计。未构建四个上游项目或执行统一真实模型评测。
 
@@ -381,6 +381,48 @@
 - SHA-256：`282709d0bf789ad3ab9ec6a706f3aeaeac1632d80a08ded507a7b7caff860ac2`
 - [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-local/src/index.ts#L160)
 
+## D31 · deepseek-harness {#evidence-d31}
+
+- 相对路径：`deepseek-harness/packages/llm/llm/src/assembler.ts`
+- 定位：第 38 行，`export class BlockAssembler`；文件共 208 行。
+- SHA-256：`a2d065645058a70195a504b101e9eed23df3eaced3def868d602f3a863b03887`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm/src/assembler.ts#L38)
+
+## D32 · deepseek-harness {#evidence-d32}
+
+- 相对路径：`deepseek-harness/packages/llm/llm/src/retry-policy.ts`
+- 定位：第 149 行，`export function resolveRetryPolicy`；文件共 195 行。
+- SHA-256：`eee2423a0152096026446dd651f29678e0c504f0349a91758720f01f74efa871`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm/src/retry-policy.ts#L149)
+
+## D33 · deepseek-harness {#evidence-d33}
+
+- 相对路径：`deepseek-harness/packages/subagent/subagent/src/lifecycle.ts`
+- 定位：第 134 行，`export function epochStopReason`；文件共 169 行。
+- SHA-256：`3f892ad12033aaf30a8c81b404eefaadb0974bd54d993631970a3c6509a13b92`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/src/lifecycle.ts#L134)
+
+## D34 · deepseek-harness {#evidence-d34}
+
+- 相对路径：`deepseek-harness/packages/subagent/subagent/src/manager.ts`
+- 定位：第 130 行，`export class SubagentManager`；文件共 1493 行。
+- SHA-256：`87298342da27dd567897bd23145fdec7d841e1f26a4e6b5dfa9a48b0b477d03e`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent/src/manager.ts#L130)
+
+## D35 · deepseek-harness {#evidence-d35}
+
+- 相对路径：`deepseek-harness/packages/subagent/subagent-fork-in-process/src/index.ts`
+- 定位：第 46 行，`function completedTurnPrefix`；文件共 83 行。
+- SHA-256：`1bc4ff5ff22c20937b6224ffe208a3c37b18c2b741ed77330c27432ce23cf30e`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/subagent/subagent-fork-in-process/src/index.ts#L46)
+
+## D36 · deepseek-harness {#evidence-d36}
+
+- 相对路径：`deepseek-harness/packages/llm/llm-retry/src/index.ts`
+- 定位：第 194 行，`async function recover`；文件共 259 行。
+- SHA-256：`d33553781ed2118aab3b249c159fae550d359627565e4714c9ea599e474b8093`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-retry/src/index.ts#L194)
+
 ## P01 · pi {#evidence-p01}
 
 - 相对路径：`pi/packages/agent/src/agent-loop.ts`
@@ -520,6 +562,34 @@
 - 定位：第 52 行，`export type McpExposure`；文件共 346 行。
 - SHA-256：`0aaad23b26f31f743bdd117754f4c871ea821279bf68f8ba5d71eccbb1602c6a`
 - [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/mcp-servers.ts#L52)
+
+## P21 · pi {#evidence-p21}
+
+- 相对路径：`pi/packages/coding-agent/src/core/tools/edit-diff.ts`
+- 定位：第 300 行，`export function applyEditsToNormalizedContent`；文件共 556 行。
+- SHA-256：`f85a9809eb44b9828236050cf38a8e45933e5cfd583a186e9a0e55a664dd3e8d`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/tools/edit-diff.ts#L300)
+
+## P22 · pi {#evidence-p22}
+
+- 相对路径：`pi/packages/durable/src/harness/tool.ts`
+- 定位：第 125 行，`export const ToolTask`；文件共 964 行。
+- SHA-256：`e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/tool.ts#L125)
+
+## P23 · pi {#evidence-p23}
+
+- 相对路径：`pi/packages/durable/src/harness/scheduler.ts`
+- 定位：第 1366 行，`#parked(record:`；文件共 2507 行。
+- SHA-256：`77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/scheduler.ts#L1366)
+
+## P24 · pi {#evidence-p24}
+
+- 相对路径：`pi/packages/durable/src/harness/view.ts`
+- 定位：第 78 行，`class ConversationViews`；文件共 267 行。
+- SHA-256：`e9d8e017089060a6deab7465630471b0405f563861094971cc10ea351d3a6823`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/durable/src/harness/view.ts#L78)
 
 ## A01 · ccsource {#evidence-a01}
 

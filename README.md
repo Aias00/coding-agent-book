@@ -2,9 +2,17 @@
 
 架构、核心机制与关键工程细节。以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考，从零设计一套能够读代码、改文件、运行验证和处理中断的 Coding Agent。
 
-[在线阅读](https://aias00.github.io/coding-agent-book/) · [增订版 EPUB](https://github.com/Aias00/coding-agent-book/releases/download/v2.2.0/coding-agent-engineering.epub) · [完整书稿](book.md) · [第一版归档](https://github.com/Aias00/coding-agent-book/releases/tag/v1.0.0)
+[在线阅读](https://aias00.github.io/coding-agent-book/) · [增订版 EPUB](https://github.com/Aias00/coding-agent-book/releases/download/v2.3.0/coding-agent-engineering.epub) · [完整书稿](book.md) · [第一版归档](https://github.com/Aias00/coding-agent-book/releases/tag/v1.0.0)
 
-**第二版按设计问题全面重写**：24 章主体、序言与 3 篇附录，包含接口、状态机、数据结构、算法、调用时序、失败恢复和方案取舍。四个项目的 90 项源码证据作为机制依据穿插正文。
+**第二版按设计问题全面重写**：24 章主体、序言与 3 篇附录，包含接口、状态机、数据结构、算法、调用时序、失败恢复和方案取舍。四个项目的 100 项源码证据作为机制依据穿插正文。
+
+**2.3.0 增订**继续补齐模型重试、流式失败、文件编辑、持久化恢复、输入接纳与子代理生命周期，明确源码事实与建议方案之间的差异。
+
+- [第 5、6 章：模型重试](chapters/05-model-adapter.md)与[流式失败](chapters/06-streaming.md)
+- [第 9 章：编辑匹配、模糊回退与冲突](chapters/09-filesystem.md)
+- [第 16、17 章：日志提交](chapters/16-persistence.md)与[执行恢复](chapters/17-recovery.md)
+- [第 18、20 章：输入接纳](chapters/18-concurrency.md)与[子代理生命周期](chapters/20-multi-agent.md)
+- [附录 A：问题覆盖与仍需补充的证据](chapters/25-glossary.md)
 
 **2.2.0 增订**展开权限、沙箱和工具 runtime 的实际实现：审批与升级重试、单调 guard、hook 输入变化、后端完整度、并发准入、取消收敛及长期进程。
 
