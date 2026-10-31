@@ -52,7 +52,7 @@ def make_sources(snapshot):
     rows += ['## 官方补充资料\n',
         '- [OpenAI：Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform)，访问日期 2026-10-30，仅用于 harness 术语与职责说明。',
         '- 开源项目的许可证与署名见仓库 `NOTICE.md` 和 `LICENSES/`。\n']
-    return '\n'.join(rows) + '\n'
+    return '\n'.join(rows).rstrip() + '\n'
 
 def group(stem):
     n = int(stem.split('-')[0])
@@ -111,7 +111,7 @@ def main():
         body = path.read_text()
         chapters.append({'stem': path.stem, 'title': body.splitlines()[0][2:], 'body': body})
     full = '\n\n'.join(references(c['body']) for c in chapters)
-    (ROOT / 'book.md').write_text(full + '\n')
+    (ROOT / 'book.md').write_text(full.rstrip() + '\n')
     output = ROOT / 'dist'
     output.mkdir(exist_ok=True)
     command = ['pandoc', str(ROOT / 'book.md'), '--from=markdown', '--to=epub3',

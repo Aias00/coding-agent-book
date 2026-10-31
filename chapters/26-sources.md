@@ -494,4 +494,3 @@
 
 - [OpenAI：Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform)，访问日期 2026-10-30，仅用于 harness 术语与职责说明。
 - 开源项目的许可证与署名见仓库 `NOTICE.md` 和 `LICENSES/`。
-
