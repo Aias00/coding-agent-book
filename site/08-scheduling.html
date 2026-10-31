@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 85 项源码依据。">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 90 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>第 8 章 调度设计：有界并发、独占屏障与稳定历史 · AI Coding Agent 设计与实现</title>
 <link rel="canonical" href="https://aias00.github.io/coding-agent-book/08-scheduling.html"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="08-scheduling" data-edition="2.1.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="08-scheduling" data-edition="2.2.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
 <a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
 <aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html" aria-current="page">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：四份源码的实现、边界与取舍</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 2.1.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<div class="sidebar-footer"><span>第 2.2.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
 <main id="main" tabindex="-1"><article><section id="第-8-章-调度设计有界并发独占屏障与稳定历史" class="level1">
 <h1>第 8 章 调度设计：有界并发、独占屏障与稳定历史</h1>
 <section id="并发要先回答共享什么" class="level2">
@@ -53,6 +53,19 @@ while unstarted or inflight:
 <h2>取消与失败如何排空</h2>
 <p>取消后停止补充池，向可取消执行发送信号，等待已开始调用结算。对尚未启动的调用生成明确的 cancelled result；对已开始但不能确认结果的写操作保留 unknown。内部调度异常同样需要排空已开始任务，不能让孤立 coroutine 留在后台继续写文件。</p>
 <p><code>Promise.all</code> 或 <code>asyncio.gather</code> 遇到一个异常时，其他任务未必已经结束。调度器必须明确收集全部已启动任务，或让执行层把普通工具失败归一化成结果。不能在第一项报错后就向用户宣告整批停止。</p>
+</section>
+<section id="源码细节上下文归属与并发准入" class="level2">
+<h2>源码细节：上下文归属与并发准入</h2>
+<p>源码事实：Codex 的 <code>ToolCallRuntime</code> 保留声明这批工具时的 <code>Arc&lt;StepContext&gt;</code>；注释明确说明，调用可能稍后才运行，仍应使用当时向模型展示工具的 step。调度使用 <code>RwLock&lt;()&gt;</code>，支持并行的调用取得共享锁，其他调用取得独占锁。等待准入阶段也受取消控制。这里的锁表达工具并发分类，不是按文件路径建立的事务锁。<a href="26-sources.html#evidence-c06">C06</a></p>
+<p>Claude Code 的 <code>StreamingToolExecutor</code> 先解析工具输入，再调用工具的 <code>isConcurrencySafe(parsedInput.data)</code>；<code>canExecuteTool()</code> 要求新调用和现有运行调用的并发性质兼容。因此是否可并发可以依赖具体参数，而非只由工具名称决定。该执行器还区分子级和父级 AbortController，部分同组错误可以取消兄弟工具，而不直接结束父查询。不能据此推导所有工具错误都取消整批。<a href="26-sources.html#evidence-a05">A05</a></p>
+<p>设计判断：保留声明时的上下文可以避免排队后的版本错配，按参数分类比名称分类更精确。但即使两个工具均允许并发，也仍需由文件前置条件、资源锁或远端并发控制防止同一资源被覆盖。结果有序不是副作用隔离。</p>
+</section>
+<section id="源码细节取消前后是否已经启动正文" class="level2">
+<h2>源码细节：取消前后是否已经启动正文</h2>
+<p>DeepSeek 的执行状态记录 bodyInvoked。正文尚未启动时，取消生成 <code>ABORTED_BEFORE_DISPATCH</code>；正文已经启动时采用 <code>ABORTED</code> 类结果。<code>dispatchToolBody()</code> 把原调用者信号与 around-wrapper 的信号合并，避免 wrapper 替换信号后丢失上层取消；已经开始的 Promise 等待收敛，再选择结果。<a href="26-sources.html#evidence-d05">D05</a></p>
+<p>这意味着取消不是简单的 Promise.race 后遗弃慢任务。工具必须响应取消才能及时停止；不合作的正文仍可能继续等待。<code>ABORTED</code> 也不证明文件和外部服务未变化，不能把它转换为自动重试许可。</p>
+<p>Codex 则依据 handler 的 finishes_on_cancellation 等信息决定取消后的等待或中止行为，准入阶段与已经运行的 handler 分开处理。因此不能把某一个项目的“等待正文收敛”当作所有 runtime 共有的固定行为。<a href="26-sources.html#evidence-c06">C06</a></p>
+<p>本书建议持久层进一步区分“确认未派发”“已启动且有结果”“已启动但效果未知”，并把已取得的副作用证据保留下来。它是恢复设计要求，不能仅从 ABORTED 这个错误码推断当前文件状态。</p>
 </section>
 <section id="参考实现的简化" class="level2">
 <h2>参考实现的简化</h2>

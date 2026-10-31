@@ -1,5 +1,17 @@
 # 第 10 章 命令执行：进程树、输出游标与后台任务
 
+## 源码路径：进程寿命与请求等待不是一回事
+
+源码事实：Codex 的 `UnifiedExecProcessManager` 将进程保存、输出收集和后续交互分开。`exec_command_inner()` 使用经过限制的 yield_time_ms 决定普通调用的本次等待；仍在运行且符合保留条件的进程可以返回 process_id，后续通过 write_stdin 或空输入继续交互、查询。部分 completion 配置另有等待行为，不能把所有分支都简化成固定毫秒数。〔C07〕
+
+yield_time_ms 到期并不等于进程真实运行期限到期。观察调用返回后，测试、构建或服务器仍可能继续；进程管理器需要保留执行环境、输出、退出状态及资源归属，而非只把一次命令输出存进聊天文本。执行器侧的进程标识还加入 UUID，降低本地标识被重新使用时与执行器保留进程混淆的风险。〔C07〕
+
+Pi 内置 Bash 的本地路径由 `createLocalShellOperations()` 启动 child_process，流式读取 stdout/stderr；POSIX 平台以 detached 方式建立进程归属，取消或明确超时时调用 killProcessTree。工具 schema 中 timeout 可选且无默认超时，resolveTimeoutMs 拒绝非正数、非有限数和超出范围的值。等待后还把信号终止映射到非成功退出值，避免 null exit code 被误解为成功。〔P17〕
+
+这里应区分三种期限：请求等待窗口、真实进程运行期限、后台资源保留期限。Pi 的这条 Bash 路径主要演示完整命令等待与取消；Codex unified exec 展示可持续交互的进程管理。不能因为两者都能执行 shell，就认为后台会话语义完全相同。
+
+Pi 的 `BashOperations` 可以替换为远程执行实现，spawnHook 也可以改变 command、cwd 和 env。设计判断：这种 seam 便于扩展，但自建宿主应让最终执行对象与审批对象一致，并确保远程文件、编辑和命令工具指向同一执行世界。可替换接口本身不等于已经具备远程隔离。〔P17〕
+
 ## 启动进程与等待进程分成两个接口
 
 ```text

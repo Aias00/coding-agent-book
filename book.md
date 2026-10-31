@@ -8,6 +8,8 @@
 
 2.1.0 增订进一步补齐任务业务流程、工具注册与暴露、Skill 渐进加载、MCP 桥接，以及四份源码各自的上下文压缩路径和设计取舍。新增专题采用“源码事实—分析判断—设计建议”的叙述顺序，先给实际函数与数据关系，再解释收益和代价。
 
+2.2.0 继续展开权限、沙箱与工具 runtime：跟踪审批与升级重试、单调 guard、hook 输入变化、文件策略与后端完整度、并发准入、取消收敛及长期进程。第 7、8、10、11、12 章分别承载这些实现细节；项目 trust、工具 scope、进程隔离和网络策略明确区分。
+
 ## 你将得到哪些实现材料
 
 每个核心章节给出五类内容：需要解决的具体问题；接口、字段及其所有者；正常流程和失败流程；并发或持久性约束；可执行的验证方法。关键算法用伪代码解释。代码块中标为“设计接口”或“伪代码”的部分是建议方案，不应直接当作完整库使用。
@@ -24,7 +26,7 @@
 
 ## 源码证据与适用范围
 
-研究快照固定在 2026-10-30。三个开源仓库使用完整 Git 提交号；Claude Code 使用本地 2.1.88 发布包，其被引用的 14 个提取实现文件已与 source map 嵌入文本对照。完整出处、85 个证据文件的哈希和定位见附录 B。编号如[C01](#evidence-c01)、[D03](#evidence-d03)用于连接方案与具体参考，不表示所有建议都已经由这些项目实现。
+研究快照固定在 2026-10-30。三个开源仓库使用完整 Git 提交号；Claude Code 使用本地 2.1.88 发布包，其被引用的 15 个提取实现文件已与 source map 嵌入文本对照。完整出处、90 个证据文件的哈希和定位见附录 B。编号如[C01](#evidence-c01)、[D03](#evidence-d03)用于连接方案与具体参考，不表示所有建议都已经由这些项目实现。
 
 源码事实给出项目、快照、函数及证据编号；分析判断说明依据和适用条件；设计建议明确属于本书归纳。源码只能确认客户端行为时，不补写服务端内部机制。固定格式提示与机械边界检查，也不被当作已经证明语义保真的证据。后续修订继续按这一口径处理。
 
@@ -479,6 +481,24 @@ Codex 的 `spec_plan` 也区分 direct、deferred、code-mode-only 与 hidden �
 
 延迟发现的收益是减少每次请求携带的 schema；代价是额外搜索往返，以及“已发现”“已声明”“当前可执行”三个状态必须保持一致。隐藏工具还需要执行入口实际拒绝，不能只期望模型忘记工具名称。
 
+## Runtime 不只是一个 execute 函数
+
+本书讨论的工具 runtime 是宿主对调用生命周期的管理层，不等同于 Node.js、Python 或容器运行时。它接纳模型提议，联系具体实现与执行环境，管理取消和结果；权限系统与沙箱分别承担决策和真实资源约束。
+
+| 层次 | 回答的问题 | 不能单独保证什么 |
+|---|---|---|
+| 权限系统 | 这个身份能否执行这项行动 | 获准程序运行时不会越界 |
+| 沙箱 | 程序实际可以触及哪些资源 | 该行动符合用户业务意图 |
+| 工具 runtime | 调用怎样准备、执行、结束和清理 | 任意后端都具备相同隔离能力 |
+
+源码事实：Codex 的 `ToolRuntime<Req, Out>` 组合 `Approvable` 与 `Sandboxable`，除 `run()` 外还提供 turn_environment、执行器是否自行管理进程沙箱、网络审批和 sandbox_cwd 等入口。`run()` 接收 `SandboxAttempt`，其中携带本次权限、沙箱选择、工作区根、网络代理及取消相关信息。因此同一工具的不同尝试可以采用不同执行权限，而不是把全部上下文塞进一个全局变量。[C12](#evidence-c12)
+
+DeepSeek 的 `ToolRegistry.execute()` 统一调用准备、派发、后处理和最终结果路径，调度器通过内部 staged 接口控制阶段衔接。普通工具与监听器失败会形成错误结果；最终返回的是与观察者收到的一致的冻结结果快照。该快照约束并不自动保证外部服务副作用事务化。[D05](#evidence-d05)
+
+Pi 的 `prepareToolCall()` 依次查找工具、准备并验证参数、运行 beforeToolCall；被 block 或已取消时返回即时错误结果。`runToolCall()` 复用准备、执行与 afterToolCall，适合作为直接调用和程序化调用的共同入口，但函数本身不追加消息或发送循环事件，调用方仍需负责历史接纳。不能把这里的 hook 接口直接说成内置的完整审批系统。[P01](#evidence-p01)
+
+设计判断：Pi 的小内核容易理解；DeepSeek 的分阶段接口适合扩展与调度组合；Codex 的尝试对象适合把审批、隔离和多种执行环境联系起来。选择取决于宿主需要管理的执行复杂度，不是接口越多，任务效果就越好。
+
 ## ToolDefinition 应该包含哪些字段
 
 ```text
@@ -607,6 +627,24 @@ while unstarted or inflight:
 
 `Promise.all` 或 `asyncio.gather` 遇到一个异常时，其他任务未必已经结束。调度器必须明确收集全部已启动任务，或让执行层把普通工具失败归一化成结果。不能在第一项报错后就向用户宣告整批停止。
 
+## 源码细节：上下文归属与并发准入
+
+源码事实：Codex 的 `ToolCallRuntime` 保留声明这批工具时的 `Arc<StepContext>`；注释明确说明，调用可能稍后才运行，仍应使用当时向模型展示工具的 step。调度使用 `RwLock<()>`，支持并行的调用取得共享锁，其他调用取得独占锁。等待准入阶段也受取消控制。这里的锁表达工具并发分类，不是按文件路径建立的事务锁。[C06](#evidence-c06)
+
+Claude Code 的 `StreamingToolExecutor` 先解析工具输入，再调用工具的 `isConcurrencySafe(parsedInput.data)`；`canExecuteTool()` 要求新调用和现有运行调用的并发性质兼容。因此是否可并发可以依赖具体参数，而非只由工具名称决定。该执行器还区分子级和父级 AbortController，部分同组错误可以取消兄弟工具，而不直接结束父查询。不能据此推导所有工具错误都取消整批。[A05](#evidence-a05)
+
+设计判断：保留声明时的上下文可以避免排队后的版本错配，按参数分类比名称分类更精确。但即使两个工具均允许并发，也仍需由文件前置条件、资源锁或远端并发控制防止同一资源被覆盖。结果有序不是副作用隔离。
+
+## 源码细节：取消前后是否已经启动正文
+
+DeepSeek 的执行状态记录 bodyInvoked。正文尚未启动时，取消生成 `ABORTED_BEFORE_DISPATCH`；正文已经启动时采用 `ABORTED` 类结果。`dispatchToolBody()` 把原调用者信号与 around-wrapper 的信号合并，避免 wrapper 替换信号后丢失上层取消；已经开始的 Promise 等待收敛，再选择结果。[D05](#evidence-d05)
+
+这意味着取消不是简单的 Promise.race 后遗弃慢任务。工具必须响应取消才能及时停止；不合作的正文仍可能继续等待。`ABORTED` 也不证明文件和外部服务未变化，不能把它转换为自动重试许可。
+
+Codex 则依据 handler 的 finishes_on_cancellation 等信息决定取消后的等待或中止行为，准入阶段与已经运行的 handler 分开处理。因此不能把某一个项目的“等待正文收敛”当作所有 runtime 共有的固定行为。[C06](#evidence-c06)
+
+本书建议持久层进一步区分“确认未派发”“已启动且有结果”“已启动但效果未知”，并把已取得的副作用证据保留下来。它是恢复设计要求，不能仅从 ABORTED 这个错误码推断当前文件状态。
+
 ## 参考实现的简化
 
 本书程序使用有界 semaphore 执行连续 parallel 组，整组收敛后按序提交；exclusive 单独执行。它没有实现滚动结果立即提交、动态重新分类和资源图锁。这样保留核心语义，便于用测试观察，也明确了从教学内核升级到平台调度器的路线。
@@ -670,6 +708,18 @@ EditRequest {
 
 # 第 10 章 命令执行：进程树、输出游标与后台任务
 
+## 源码路径：进程寿命与请求等待不是一回事
+
+源码事实：Codex 的 `UnifiedExecProcessManager` 将进程保存、输出收集和后续交互分开。`exec_command_inner()` 使用经过限制的 yield_time_ms 决定普通调用的本次等待；仍在运行且符合保留条件的进程可以返回 process_id，后续通过 write_stdin 或空输入继续交互、查询。部分 completion 配置另有等待行为，不能把所有分支都简化成固定毫秒数。[C07](#evidence-c07)
+
+yield_time_ms 到期并不等于进程真实运行期限到期。观察调用返回后，测试、构建或服务器仍可能继续；进程管理器需要保留执行环境、输出、退出状态及资源归属，而非只把一次命令输出存进聊天文本。执行器侧的进程标识还加入 UUID，降低本地标识被重新使用时与执行器保留进程混淆的风险。[C07](#evidence-c07)
+
+Pi 内置 Bash 的本地路径由 `createLocalShellOperations()` 启动 child_process，流式读取 stdout/stderr；POSIX 平台以 detached 方式建立进程归属，取消或明确超时时调用 killProcessTree。工具 schema 中 timeout 可选且无默认超时，resolveTimeoutMs 拒绝非正数、非有限数和超出范围的值。等待后还把信号终止映射到非成功退出值，避免 null exit code 被误解为成功。[P17](#evidence-p17)
+
+这里应区分三种期限：请求等待窗口、真实进程运行期限、后台资源保留期限。Pi 的这条 Bash 路径主要演示完整命令等待与取消；Codex unified exec 展示可持续交互的进程管理。不能因为两者都能执行 shell，就认为后台会话语义完全相同。
+
+Pi 的 `BashOperations` 可以替换为远程执行实现，spawnHook 也可以改变 command、cwd 和 env。设计判断：这种 seam 便于扩展，但自建宿主应让最终执行对象与审批对象一致，并确保远程文件、编辑和命令工具指向同一执行世界。可替换接口本身不等于已经具备远程隔离。[P17](#evidence-p17)
+
 ## 启动进程与等待进程分成两个接口
 
 ```text
@@ -723,6 +773,46 @@ PID 可能复用。句柄应包含系统生成的随机 identity、创建时间�
 
 
 # 第 11 章 授权与审批：批准的必须是将要执行的行动
+
+## Codex：审批、执行尝试与升级重试的实际顺序
+
+本节是固定源码快照的实际流程；后续 Invocation、Grant 和统一指纹是本书建议接口，不能反过来当作四个项目已经共有的 schema。
+
+`ToolOrchestrator::run()` 先从请求取得 TurnEnvironment、permission profile 与审批策略，再计算 `ExecApprovalRequirement`。Forbidden 直接拒绝，NeedsApproval 进入审批；Skip 通常由配置决策放行，但 strict_auto_review 启用时仍进入审查。随后才确定沙箱覆盖、实际权限与初次执行尝试。审批通过并不意味着必然绕过沙箱。[C05](#evidence-c05)
+
+```text
+请求与执行环境
+→ 审批要求：Skip / Forbidden / NeedsApproval
+→ 必要审批
+→ 选择实际权限和沙箱
+→ 首次执行
+→ 若确认为沙箱拒绝，检查升级条件
+→ 必要时按重试的实际权限审查，再执行
+```
+
+第一次失败后，代码先识别 `SandboxErr::Denied`，普通业务失败不会直接进入该升级分支；再检查网络拒绝信息、工具 escalate_on_failure、审批策略及能否无沙箱运行。Never 和 OnRequest 等策略有明确的不重试分支，也存在受条件约束的网络审批例外，不能概括成“命令失败就申请更高权限”。[C05](#evidence-c05)
+
+准备新的升级审查时，允许无沙箱重试的 ExecCommand 行动会被改为 RequireEscalated，清除原来的 additional_permissions，以便审查和缓存针对实际重试权限。已有用户或 hook 批准与 Guardian 自动审查的复用条件不同；不是每次升级都必然重新弹窗。设计判断：关键是实际行动和已审查权限一致，而非统计是否显示过确认框。[C05](#evidence-c05)
+
+## DeepSeek：可扩展决策之后仍有单调 guard
+
+`prepareExecution()` 先运行 tools/pre-execute waterfall，ask 由 serviceAsk 处理；allow 后再检查全局及 scope 链上的 guard。guard 返回拒绝原因或 undefined，没有强制 allow 返回值，所以普通扩展放行仍可能被 guard 拒绝，其他 guard 不能反向放宽。取消在多个执行边界另行检查。[D05](#evidence-d05)
+
+这里的单调性描述受支持的策略接口，不表示同进程插件天然隔离：能执行任意宿主代码的恶意插件不受普通 hook API 的安全承诺保护。其执行权限与信任范围应由第 12、19 章的隔离与扩展设计约束。
+
+## Claude Code：输入变化和规则优先级属于执行语义
+
+`checkPermissionsAndCallTool()` 先解析 schema、调用 validateInput，再运行 PreToolUse hooks 和权限流程。passthrough hook 可以给出 updatedInput，供正常权限流程使用；权限结果也可以提供 updatedInput，成为随后 tool.call 的输入。原模型输入与最终执行输入因此不能假定永远相同。[A06](#evidence-a06)
+
+`checkRuleBasedPermissions()` 明确列出 bypassPermissions 仍尊重的规则检查，包括整工具 deny、工具特定 deny、部分 ask 规则和 safetyCheck。它同时处理沙箱 Bash 的条件性自动放行，不能简单归纳为任一 ask 永远优先。dontAsk 的处理也可将尚未解决的 ask 转为 deny，避免没有交互入口时隐式同意。[A11](#evidence-a11)
+
+设计判断：应能解释本次决策来自规则、模式、hook、用户还是分类器，以及最终批准的参数。这里不能仅凭 updatedInput 的存在推断漏洞，也不能声称该实现已采用后文建议的统一摘要授权。审阅具体工具时，需要继续核对修改后的输入如何受规则和执行环境约束。
+
+## Pi：项目 trust 与单次工具批准分开理解
+
+`resolveProjectTrusted()` 处理项目配置、资源、缺失项目包安装和项目扩展执行的信任选择。它依次考虑显式 override、项目资源、扩展决策、已存信任与默认策略；需要询问但没有 UI 时返回 false，取消选择也不自动信任。[P09](#evidence-p09)
+
+工具调用的 beforeToolCall 可以阻止某次行动，但项目 trust 不等于逐命令批准，更不等于操作系统沙箱。设计判断：项目代码能影响宿主扩展装载时，应在加载边界建立信任；工具真正执行时仍需独立执行策略。这两个问题不能用同一个 approved 字段混在一起。
 
 ## 将提议、决策和执行凭证分开
 
@@ -779,6 +869,46 @@ canonical JSON 应使用确定键顺序、明确数值表示、拒绝 NaN，并�
 
 
 # 第 12 章 执行隔离：文件、网络、身份与不可信仓库
+
+## DeepSeek：共享策略与执行后端分离
+
+源码事实：`SandboxExecutionPolicy` 包含 mode、workspaceRoot 及可选 sessionId；mode 为 read-only、workspace-write、danger-full-access。接口明确声明它管理文件效果，网络和进程可见性不在这套词汇中。因此不能从 workspace-write 推断“禁止联网”，也不能从 read-only 推断“敏感文件均不可读”。[D28](#evidence-d28)
+
+`SandboxPolicyService.resolve()` 的模式优先级为“本次显式模式 > 会话覆盖 > 部署默认”，工作区优先来自会话创建时的 cwd，缺少时才用配置的 fallback。显式模式是否已经获批由调用者在相应边界保证，resolver 本身不是审批器。会话覆盖由 sandbox/mode 日志事件恢复；当前事实另行提供给模型。路径保留执行世界的拼写，后端在真实文件系统上规范化。[D29](#evidence-d29)[D14](#evidence-d14)
+
+`sandbox-local` 才负责实际约束命令。当前平台链如下，策略接口和后端选择不是同一件事：
+
+| 平台 | 后端链 | 代码中需要注意的条件 |
+|---|---|---|
+| Linux | bwrap → Landlock | 多候选时执行有时限的功能探测，Landlock 可报告 partial |
+| macOS | Seatbelt | 默认单候选直接选择，执行时失败仍需处理，不能说启动前一定探测 |
+| Windows | windows-acl restricted-token runner | 当前实现明确报告 partial，不冒充绝对文件边界 |
+
+`SandboxEnforcement` 区分 full 与 partial。这里的 full 也只针对该接口承诺的文件效果，不能扩大成网络、资源配额和全部系统安全已经完备。配置自定义 runner 会改变选择与探测语义；生产部署要验证该 runner 真正落实所声明的能力。[D28](#evidence-d28)[D30](#evidence-d30)
+
+设计判断：返回“请求策略、实际后端、执行完整度、不可支持项”，比返回 sandboxed=true 更利于调用者决策。要求绝对边界的任务不应把 partial 当成 full；沙箱缺失和用户程序自身失败也应分别解释。
+
+## Codex：Linux 包装顺序与升级时保留禁止读取
+
+`LinuxSandboxCommand` 明确描述默认 bubblewrap 文件系统隔离与 seccomp 系统调用过滤；use_legacy_landlock 是显式启用的旧路径。apply-seccomp-then-exec 分支解释了执行顺序：先让 bubblewrap 建立文件视图，再施加 seccomp 与 no_new_privs，避免过早收紧妨碍启动器建立隔离。不能把所有路径统一说成“只依赖 Landlock”。[C22](#evidence-c22)
+
+权限升级还有一处重要保护：`unsandboxed_execution_allowed()` 检查文件策略是否含 denied-read。若有，直接退出沙箱会丢掉禁止读取的执行机制，所以不能将这类升级一概转成无沙箱运行；相关函数还调整升级参数以保留限制。编排器对特定远程执行器的能力也会进行核对。[C12](#evidence-c12)[C05](#evidence-c05)
+
+```text
+原权限：工作区可写；敏感目录禁止读取
+新需求：扩大某个写入范围
+正确目标：扩大获准范围，同时保留禁止读取
+```
+
+上例是依据代码意图归纳的设计要求，不是对任意部署配置的实测证明。权限范围应能分别表达和合并，单个“普通/管理员”开关很难描述保留哪些限制。
+
+## Claude Code 与 Pi：接入点不等于全部隔离实现
+
+Claude Code 的 sandbox-adapter 把设置转成 `@anthropic-ai/sandbox-runtime` 的配置，包括文件规则和网络配置；wrapWithSandbox 在沙箱启用时等待初始化，缺少初始化状态则报错，然后委托外部 runtime 包完成包装。仅凭 adapter 不能确认该依赖在所有平台的内部实现与实际隔离强度，也不能认为开关关闭时仍有同等限制。[A18](#evidence-a18)
+
+Pi 本地 Bash 的默认路径直接通过 child_process 启动 shell，支持替换 BashOperations。project-trust 决定项目资源和扩展的信任，不在这两段代码中建立操作系统文件或网络隔离。其他组合可以增加执行后端；这里只能确认已阅读的默认本地路径，不能给整个生态作“完全没有沙箱”的结论。[P17](#evidence-p17)[P09](#evidence-p09)
+
+设计判断：自建时可参考 DeepSeek 的策略/provider 分离和执行完整度，借鉴 Codex 在权限扩大时保持禁止项的处理；扩展后端时保留 Pi 的清晰 seam，并像 Claude adapter 一样明确初始化与依赖边界。上述组合是本书建议，不是任何一个项目现成的统一安全实现。
 
 ## 策略判断与真实限制分别负责什么
 
@@ -1837,6 +1967,18 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 | 摘要是否更小、历史是否仍兼容 | DeepSeek summarizeCompaction、稳定性检查 | [D21](#evidence-d21) |
 | 服务端压缩与窗口重置怎样区分 | Codex run_auto_compact 的分支 | [C01](#evidence-c01)[C17](#evidence-c17)[C19](#evidence-c19) |
 | 压缩后怎样恢复 Skill 与 MCP 指令 | Claude compactConversation | [A09](#evidence-a09) |
+| 审批与升级重试如何衔接 | Codex ToolOrchestrator.run | [C05](#evidence-c05) |
+| 哪些限制不能被普通扩展放开 | DeepSeek prepareExecution、guardReason | [D05](#evidence-d05) |
+| hook 与权限流程如何改变输入 | Claude checkPermissionsAndCallTool | [A06](#evidence-a06) |
+| bypass 模式仍检查哪些规则 | Claude checkRuleBasedPermissions | [A11](#evidence-a11) |
+| 文件策略与真实执行后端怎样分离 | DeepSeek SandboxPolicyService、sandbox-local | [D28](#evidence-d28)[D29](#evidence-d29)[D30](#evidence-d30) |
+| 升级权限时如何保留禁止读取 | Codex unsandboxed_execution_allowed | [C12](#evidence-c12) |
+| Linux 沙箱如何启动 | Codex LinuxSandboxCommand | [C22](#evidence-c22) |
+| 工具 runtime 持有哪些本次执行信息 | Codex ToolRuntime、SandboxAttempt | [C12](#evidence-c12) |
+| 取消发生前正文是否已经执行 | DeepSeek dispatchToolBody、cancellationResult | [D05](#evidence-d05) |
+| 请求等待与进程寿命如何分开 | Codex exec_command_inner；Pi createLocalShellOperations | [C07](#evidence-c07)[P17](#evidence-p17) |
+| 项目 trust 管什么 | Pi resolveProjectTrusted | [P09](#evidence-p09) |
+| 沙箱 adapter 与外部依赖怎样衔接 | Claude wrapWithSandbox | [A18](#evidence-a18) |
 
 第 15 章比较的是这些可检查的客户端设计。摘要准确率、实际费用和真实任务成功率没有统一实验依据，不提供数值排名。
 
@@ -1856,7 +1998,7 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 
 ## 材料与验证方法
 
-研究脚本记录 85 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
+研究脚本记录 90 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
 
 这些快照作为设计方案的参考依据。可运行参考内核和故障实验见第 23 章；完整方案包含明确标注的扩展设计。未构建四个上游项目或执行统一真实模型评测。
 
@@ -2006,6 +2148,13 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - 定位：第 1296 行，`    Compaction {`；文件共 4757 行。
 - SHA-256：`753498bc730ba21ded710d9aa2b2f9163e6bbe4eaa18f1c25d998c36138a54f7`
 - [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/protocol/src/models.rs#L1296)
+
+## C22 · codex {#evidence-c22}
+
+- 相对路径：`codex/codex-rs/linux-sandbox/src/linux_run_main.rs`
+- 定位：第 59 行，`pub struct LinuxSandboxCommand`；文件共 1198 行。
+- SHA-256：`2c8cdf628b8b8467cccf38227cada5295f5cb6a04888b860ea1b882fe2d19d53`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/linux-sandbox/src/linux_run_main.rs#L59)
 
 ## D01 · deepseek-harness {#evidence-d01}
 
@@ -2195,6 +2344,27 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - 定位：第 113 行，`async function syncTools`；文件共 511 行。
 - SHA-256：`59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9`
 - [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/tools.ts#L113)
+
+## D28 · deepseek-harness {#evidence-d28}
+
+- 相对路径：`deepseek-harness/packages/sandbox/sandbox/src/index.ts`
+- 定位：第 40 行，`export interface SandboxExecutionPolicy`；文件共 182 行。
+- SHA-256：`46592025ce36d04ff8d1bfa9d6594dd8d1527883649ccf40ff7a169e94e68dc6`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox/src/index.ts#L40)
+
+## D29 · deepseek-harness {#evidence-d29}
+
+- 相对路径：`deepseek-harness/packages/sandbox/sandbox-policy/src/index.ts`
+- 定位：第 164 行，`resolve(request: SandboxPolicyRequest`；文件共 183 行。
+- SHA-256：`6fce58e5bf63475f761871389bbf01043fba859f22e44c805522c39afbff32d6`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-policy/src/index.ts#L164)
+
+## D30 · deepseek-harness {#evidence-d30}
+
+- 相对路径：`deepseek-harness/packages/sandbox/sandbox-local/src/index.ts`
+- 定位：第 160 行，`const PLATFORM_CHAINS`；文件共 583 行。
+- SHA-256：`282709d0bf789ad3ab9ec6a706f3aeaeac1632d80a08ded507a7b7caff860ac2`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-local/src/index.ts#L160)
 
 ## P01 · pi {#evidence-p01}
 
@@ -2452,6 +2622,13 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - SHA-256：`aede0336973766a4ae25d2625156d3f9300736896ed4691b566e1c98472fd6f9`
 - 本地提取文本与发布包 source map 嵌入文本一致。
 
+## A18 · ccsource {#evidence-a18}
+
+- 相对路径：`ccsource/package/src-extracted/src/utils/sandbox/sandbox-adapter.ts`
+- 定位：第 704 行，`async function wrapWithSandbox`；文件共 985 行。
+- SHA-256：`7a69378764884ce8bd042e6286ee24468a77c18bb2582aa007bc4b3fd799bfcb`
+- 本地提取文本与发布包 source map 嵌入文本一致。
+
 ## 官方补充资料
 
 - [OpenAI：Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform)，访问日期 2026-10-30，仅用于 harness 术语与职责说明。
@@ -2462,7 +2639,7 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 
 ## 第二版的定位
 
-本次增订为 2.1.0，研究日期沿用 2026-10-30 的固定源码快照。第一版按项目分别分析；第二版按 AI Coding Agent 的设计与实现问题重写，补充核心接口、状态机、数据结构、算法、故障时序和可运行内核。2.1.0 增补源码驱动的任务流程、Tool/Skill/MCP 机制、四套压缩实现与取舍比较，并把证据索引扩展至 85 个文件。旧版 EPUB 仍可在对应历史 Release 获取。
+本次增订为 2.2.0，研究日期沿用 2026-10-30 的固定源码快照。第一版按项目分别分析；第二版按 AI Coding Agent 的设计与实现问题重写，补充核心接口、状态机、数据结构、算法、故障时序和可运行内核。2.1.0 增补任务流程、Tool/Skill/MCP 机制和四套压缩实现；2.2.0 进一步展开审批、沙箱、runtime、并发、取消和进程生命周期，证据索引扩展至 90 个文件。旧版 EPUB 仍可在对应历史 Release 获取。
 
 ## 源码与可运行实现的关系
 

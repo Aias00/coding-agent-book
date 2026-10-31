@@ -1,12 +1,13 @@
-《AI Coding Agent 设计与实现》2.1.0 增订：补齐任务流程、Tool/Skill/MCP 机制与四套上下文压缩实现的源码分析。
+《AI Coding Agent 设计与实现》2.2.0 增订：按源码展开权限、沙箱与工具 runtime。
 
-- 第 4 章补充从任务接纳、项目调查、实施、验证到交付的业务流程及异常分支。
-- 第 7、19 章补充模型侧工具声明、暴露模式、Skill 目录与正文加载、MCP 原始名称映射和同步失败边界。
-- 第 15 章按 Pi、DeepSeek Harness、Codex、Claude Code 分别追踪压缩触发、切分、摘要、替换与能力恢复，并分析收益和代价。
-- 区分源码事实、分析判断和设计建议，不对未公开的服务端压缩机制或未实测性能作确定结论。
-- 源码证据从 68 扩展到 85 个文件，Claude Code 引用的 14 个提取实现文件与本地 source map 对照。
-- 保留 24 章主体、3 篇附录、可运行参考内核及 28 项机制测试，更新同源 EPUB 与在线阅读。
+- 第 7 章：区分权限系统、沙箱和 runtime，比较三套工具调用生命周期。
+- 第 8 章：补充 step 上下文归属、并发准入和取消后的正文收敛。
+- 第 10 章：区分请求等待、进程期限与后台保留，追踪 Codex 与 Pi 的命令执行路径。
+- 第 11 章：补充审批与升级重试、单调 guard、hook 输入变化、规则优先级及项目 trust。
+- 第 12 章：区分策略与后端、full 与 partial，说明 Linux 包装顺序和升级时保留禁止读取。
+- 证据索引扩展至 90 个文件，15 个 Claude Code 提取实现文件与 source map 嵌入文本对照。
+- 延续源码事实、工程判断、建议方案分别标注；更新 EPUB、在线阅读及验证报告。
 
-[在线阅读](https://aias00.github.io/coding-agent-book/) · [参考实现与书稿](https://github.com/Aias00/coding-agent-book) · [第一版归档](https://github.com/Aias00/coding-agent-book/releases/tag/v1.0.0)
+[在线阅读](https://aias00.github.io/coding-agent-book/) · [源码与书稿](https://github.com/Aias00/coding-agent-book) · [上一增订版](https://github.com/Aias00/coding-agent-book/releases/tag/v2.1.0)
 
-默认脚本模型用于机制验证，无需 API 密钥。真实模型流式接入、操作系统隔离与分布式执行等给出方案和验收要求，尚非完整生产实现。
+本次为书稿增订；参考内核没有新增操作系统沙箱、任意 shell 或交互审批实现。上游实际隔离效果与跨产品安全性没有进行统一运行评测。

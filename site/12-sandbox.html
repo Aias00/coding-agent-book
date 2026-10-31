@@ -1,17 +1,71 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 85 项源码依据。">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 90 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>第 12 章 执行隔离：文件、网络、身份与不可信仓库 · AI Coding Agent 设计与实现</title>
 <link rel="canonical" href="https://aias00.github.io/coding-agent-book/12-sandbox.html"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="12-sandbox" data-edition="2.1.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="12-sandbox" data-edition="2.2.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
 <a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
 <aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html" aria-current="page">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：四份源码的实现、边界与取舍</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 2.1.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<div class="sidebar-footer"><span>第 2.2.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
 <main id="main" tabindex="-1"><article><section id="第-12-章-执行隔离文件网络身份与不可信仓库" class="level1">
 <h1>第 12 章 执行隔离：文件、网络、身份与不可信仓库</h1>
+<section id="deepseek共享策略与执行后端分离" class="level2">
+<h2>DeepSeek：共享策略与执行后端分离</h2>
+<p>源码事实：<code>SandboxExecutionPolicy</code> 包含 mode、workspaceRoot 及可选 sessionId；mode 为 read-only、workspace-write、danger-full-access。接口明确声明它管理文件效果，网络和进程可见性不在这套词汇中。因此不能从 workspace-write 推断“禁止联网”，也不能从 read-only 推断“敏感文件均不可读”。<a href="26-sources.html#evidence-d28">D28</a></p>
+<p><code>SandboxPolicyService.resolve()</code> 的模式优先级为“本次显式模式 &gt; 会话覆盖 &gt; 部署默认”，工作区优先来自会话创建时的 cwd，缺少时才用配置的 fallback。显式模式是否已经获批由调用者在相应边界保证，resolver 本身不是审批器。会话覆盖由 sandbox/mode 日志事件恢复；当前事实另行提供给模型。路径保留执行世界的拼写，后端在真实文件系统上规范化。<a href="26-sources.html#evidence-d29">D29</a><a href="26-sources.html#evidence-d14">D14</a></p>
+<p><code>sandbox-local</code> 才负责实际约束命令。当前平台链如下，策略接口和后端选择不是同一件事：</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>平台</th>
+<th>后端链</th>
+<th>代码中需要注意的条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux</td>
+<td>bwrap → Landlock</td>
+<td>多候选时执行有时限的功能探测，Landlock 可报告 partial</td>
+</tr>
+<tr>
+<td>macOS</td>
+<td>Seatbelt</td>
+<td>默认单候选直接选择，执行时失败仍需处理，不能说启动前一定探测</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td>windows-acl restricted-token runner</td>
+<td>当前实现明确报告 partial，不冒充绝对文件边界</td>
+</tr>
+</tbody>
+</table>
+<p><code>SandboxEnforcement</code> 区分 full 与 partial。这里的 full 也只针对该接口承诺的文件效果，不能扩大成网络、资源配额和全部系统安全已经完备。配置自定义 runner 会改变选择与探测语义；生产部署要验证该 runner 真正落实所声明的能力。<a href="26-sources.html#evidence-d28">D28</a><a href="26-sources.html#evidence-d30">D30</a></p>
+<p>设计判断：返回“请求策略、实际后端、执行完整度、不可支持项”，比返回 sandboxed=true 更利于调用者决策。要求绝对边界的任务不应把 partial 当成 full；沙箱缺失和用户程序自身失败也应分别解释。</p>
+</section>
+<section id="codexlinux-包装顺序与升级时保留禁止读取" class="level2">
+<h2>Codex：Linux 包装顺序与升级时保留禁止读取</h2>
+<p><code>LinuxSandboxCommand</code> 明确描述默认 bubblewrap 文件系统隔离与 seccomp 系统调用过滤；use_legacy_landlock 是显式启用的旧路径。apply-seccomp-then-exec 分支解释了执行顺序：先让 bubblewrap 建立文件视图，再施加 seccomp 与 no_new_privs，避免过早收紧妨碍启动器建立隔离。不能把所有路径统一说成“只依赖 Landlock”。<a href="26-sources.html#evidence-c22">C22</a></p>
+<p>权限升级还有一处重要保护：<code>unsandboxed_execution_allowed()</code> 检查文件策略是否含 denied-read。若有，直接退出沙箱会丢掉禁止读取的执行机制，所以不能将这类升级一概转成无沙箱运行；相关函数还调整升级参数以保留限制。编排器对特定远程执行器的能力也会进行核对。<a href="26-sources.html#evidence-c12">C12</a><a href="26-sources.html#evidence-c05">C05</a></p>
+<pre class="text"><code>原权限：工作区可写；敏感目录禁止读取
+新需求：扩大某个写入范围
+正确目标：扩大获准范围，同时保留禁止读取</code></pre>
+<p>上例是依据代码意图归纳的设计要求，不是对任意部署配置的实测证明。权限范围应能分别表达和合并，单个“普通/管理员”开关很难描述保留哪些限制。</p>
+</section>
+<section id="claude-code-与-pi接入点不等于全部隔离实现" class="level2">
+<h2>Claude Code 与 Pi：接入点不等于全部隔离实现</h2>
+<p>Claude Code 的 sandbox-adapter 把设置转成 <code>@anthropic-ai/sandbox-runtime</code> 的配置，包括文件规则和网络配置；wrapWithSandbox 在沙箱启用时等待初始化，缺少初始化状态则报错，然后委托外部 runtime 包完成包装。仅凭 adapter 不能确认该依赖在所有平台的内部实现与实际隔离强度，也不能认为开关关闭时仍有同等限制。<a href="26-sources.html#evidence-a18">A18</a></p>
+<p>Pi 本地 Bash 的默认路径直接通过 child_process 启动 shell，支持替换 BashOperations。project-trust 决定项目资源和扩展的信任，不在这两段代码中建立操作系统文件或网络隔离。其他组合可以增加执行后端；这里只能确认已阅读的默认本地路径，不能给整个生态作“完全没有沙箱”的结论。<a href="26-sources.html#evidence-p17">P17</a><a href="26-sources.html#evidence-p09">P09</a></p>
+<p>设计判断：自建时可参考 DeepSeek 的策略/provider 分离和执行完整度，借鉴 Codex 在权限扩大时保持禁止项的处理；扩展后端时保留 Pi 的清晰 seam，并像 Claude adapter 一样明确初始化与依赖边界。上述组合是本书建议，不是任何一个项目现成的统一安全实现。</p>
+</section>
 <section id="策略判断与真实限制分别负责什么" class="level2">
 <h2>策略判断与真实限制分别负责什么</h2>
 <p>策略层决定某项行动是否被允许，沙箱负责限制程序真实访问资源。一个测试脚本可以绕开模型工具 API 直接打开文件或联网，因此只在 read_file 工具检查路径不够。进程内插件同样可能直接调用宿主 API，逻辑 scope 不会自动隔离恶意扩展。</p>

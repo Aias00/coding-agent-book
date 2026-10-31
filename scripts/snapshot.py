@@ -30,6 +30,7 @@ FILES = {
         ('C19', 'codex-rs/core/src/compact_token_budget.rs', 'sess.start_new_context_window'),
         ('C20', 'codex-rs/core/src/session/async_compaction.rs', 'candidate.prefix.generation'),
         ('C21', 'codex-rs/protocol/src/models.rs', '    Compaction {'),
+        ('C22', 'codex-rs/linux-sandbox/src/linux_run_main.rs', 'pub struct LinuxSandboxCommand'),
     ],
     'deepseek-harness': [
         ('D01', 'docs/architecture.md', '## Turn flow'),
@@ -59,6 +60,9 @@ FILES = {
         ('D25', 'packages/mcp/mcp-client/src/index.ts', 'async function apply'),
         ('D26', 'packages/mcp/mcp-client/README.md', ''),
         ('D27', 'packages/mcp/mcp-client/src/tools.ts', 'async function syncTools'),
+        ('D28', 'packages/sandbox/sandbox/src/index.ts', 'export interface SandboxExecutionPolicy'),
+        ('D29', 'packages/sandbox/sandbox-policy/src/index.ts', 'resolve(request: SandboxPolicyRequest'),
+        ('D30', 'packages/sandbox/sandbox-local/src/index.ts', 'const PLATFORM_CHAINS'),
     ],
     'pi': [
         ('P01', 'packages/agent/src/agent-loop.ts', 'async function runLoop'),
@@ -100,6 +104,7 @@ FILES = {
         ('A15', 'package/LICENSE.md', ''),
         ('A16', 'package/src-extracted/src/utils/sessionRestore.ts', ''),
         ('A17', 'package/src-extracted/src/services/compact/timeBasedMCConfig.ts', 'const TIME_BASED_MC_CONFIG_DEFAULTS'),
+        ('A18', 'package/src-extracted/src/utils/sandbox/sandbox-adapter.ts', 'async function wrapWithSandbox'),
     ],
 }
 

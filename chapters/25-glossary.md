@@ -71,5 +71,17 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 | 摘要是否更小、历史是否仍兼容 | DeepSeek summarizeCompaction、稳定性检查 | 〔D21〕 |
 | 服务端压缩与窗口重置怎样区分 | Codex run_auto_compact 的分支 | 〔C01〕〔C17〕〔C19〕 |
 | 压缩后怎样恢复 Skill 与 MCP 指令 | Claude compactConversation | 〔A09〕 |
+| 审批与升级重试如何衔接 | Codex ToolOrchestrator.run | 〔C05〕 |
+| 哪些限制不能被普通扩展放开 | DeepSeek prepareExecution、guardReason | 〔D05〕 |
+| hook 与权限流程如何改变输入 | Claude checkPermissionsAndCallTool | 〔A06〕 |
+| bypass 模式仍检查哪些规则 | Claude checkRuleBasedPermissions | 〔A11〕 |
+| 文件策略与真实执行后端怎样分离 | DeepSeek SandboxPolicyService、sandbox-local | 〔D28〕〔D29〕〔D30〕 |
+| 升级权限时如何保留禁止读取 | Codex unsandboxed_execution_allowed | 〔C12〕 |
+| Linux 沙箱如何启动 | Codex LinuxSandboxCommand | 〔C22〕 |
+| 工具 runtime 持有哪些本次执行信息 | Codex ToolRuntime、SandboxAttempt | 〔C12〕 |
+| 取消发生前正文是否已经执行 | DeepSeek dispatchToolBody、cancellationResult | 〔D05〕 |
+| 请求等待与进程寿命如何分开 | Codex exec_command_inner；Pi createLocalShellOperations | 〔C07〕〔P17〕 |
+| 项目 trust 管什么 | Pi resolveProjectTrusted | 〔P09〕 |
+| 沙箱 adapter 与外部依赖怎样衔接 | Claude wrapWithSandbox | 〔A18〕 |
 
 第 15 章比较的是这些可检查的客户端设计。摘要准确率、实际费用和真实任务成功率没有统一实验依据，不提供数值排名。

@@ -1,17 +1,47 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 85 项源码依据。">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 90 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>第 11 章 授权与审批：批准的必须是将要执行的行动 · AI Coding Agent 设计与实现</title>
 <link rel="canonical" href="https://aias00.github.io/coding-agent-book/11-approvals.html"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="11-approvals" data-edition="2.1.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="11-approvals" data-edition="2.2.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
 <a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
 <aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html" aria-current="page">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：四份源码的实现、边界与取舍</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 2.1.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<div class="sidebar-footer"><span>第 2.2.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
 <main id="main" tabindex="-1"><article><section id="第-11-章-授权与审批批准的必须是将要执行的行动" class="level1">
 <h1>第 11 章 授权与审批：批准的必须是将要执行的行动</h1>
+<section id="codex审批执行尝试与升级重试的实际顺序" class="level2">
+<h2>Codex：审批、执行尝试与升级重试的实际顺序</h2>
+<p>本节是固定源码快照的实际流程；后续 Invocation、Grant 和统一指纹是本书建议接口，不能反过来当作四个项目已经共有的 schema。</p>
+<p><code>ToolOrchestrator::run()</code> 先从请求取得 TurnEnvironment、permission profile 与审批策略，再计算 <code>ExecApprovalRequirement</code>。Forbidden 直接拒绝，NeedsApproval 进入审批；Skip 通常由配置决策放行，但 strict_auto_review 启用时仍进入审查。随后才确定沙箱覆盖、实际权限与初次执行尝试。审批通过并不意味着必然绕过沙箱。<a href="26-sources.html#evidence-c05">C05</a></p>
+<pre class="text"><code>请求与执行环境
+→ 审批要求：Skip / Forbidden / NeedsApproval
+→ 必要审批
+→ 选择实际权限和沙箱
+→ 首次执行
+→ 若确认为沙箱拒绝，检查升级条件
+→ 必要时按重试的实际权限审查，再执行</code></pre>
+<p>第一次失败后，代码先识别 <code>SandboxErr::Denied</code>，普通业务失败不会直接进入该升级分支；再检查网络拒绝信息、工具 escalate_on_failure、审批策略及能否无沙箱运行。Never 和 OnRequest 等策略有明确的不重试分支，也存在受条件约束的网络审批例外，不能概括成“命令失败就申请更高权限”。<a href="26-sources.html#evidence-c05">C05</a></p>
+<p>准备新的升级审查时，允许无沙箱重试的 ExecCommand 行动会被改为 RequireEscalated，清除原来的 additional_permissions，以便审查和缓存针对实际重试权限。已有用户或 hook 批准与 Guardian 自动审查的复用条件不同；不是每次升级都必然重新弹窗。设计判断：关键是实际行动和已审查权限一致，而非统计是否显示过确认框。<a href="26-sources.html#evidence-c05">C05</a></p>
+</section>
+<section id="deepseek可扩展决策之后仍有单调-guard" class="level2">
+<h2>DeepSeek：可扩展决策之后仍有单调 guard</h2>
+<p><code>prepareExecution()</code> 先运行 tools/pre-execute waterfall，ask 由 serviceAsk 处理；allow 后再检查全局及 scope 链上的 guard。guard 返回拒绝原因或 undefined，没有强制 allow 返回值，所以普通扩展放行仍可能被 guard 拒绝，其他 guard 不能反向放宽。取消在多个执行边界另行检查。<a href="26-sources.html#evidence-d05">D05</a></p>
+<p>这里的单调性描述受支持的策略接口，不表示同进程插件天然隔离：能执行任意宿主代码的恶意插件不受普通 hook API 的安全承诺保护。其执行权限与信任范围应由第 12、19 章的隔离与扩展设计约束。</p>
+</section>
+<section id="claude-code输入变化和规则优先级属于执行语义" class="level2">
+<h2>Claude Code：输入变化和规则优先级属于执行语义</h2>
+<p><code>checkPermissionsAndCallTool()</code> 先解析 schema、调用 validateInput，再运行 PreToolUse hooks 和权限流程。passthrough hook 可以给出 updatedInput，供正常权限流程使用；权限结果也可以提供 updatedInput，成为随后 tool.call 的输入。原模型输入与最终执行输入因此不能假定永远相同。<a href="26-sources.html#evidence-a06">A06</a></p>
+<p><code>checkRuleBasedPermissions()</code> 明确列出 bypassPermissions 仍尊重的规则检查，包括整工具 deny、工具特定 deny、部分 ask 规则和 safetyCheck。它同时处理沙箱 Bash 的条件性自动放行，不能简单归纳为任一 ask 永远优先。dontAsk 的处理也可将尚未解决的 ask 转为 deny，避免没有交互入口时隐式同意。<a href="26-sources.html#evidence-a11">A11</a></p>
+<p>设计判断：应能解释本次决策来自规则、模式、hook、用户还是分类器，以及最终批准的参数。这里不能仅凭 updatedInput 的存在推断漏洞，也不能声称该实现已采用后文建议的统一摘要授权。审阅具体工具时，需要继续核对修改后的输入如何受规则和执行环境约束。</p>
+</section>
+<section id="pi项目-trust-与单次工具批准分开理解" class="level2">
+<h2>Pi：项目 trust 与单次工具批准分开理解</h2>
+<p><code>resolveProjectTrusted()</code> 处理项目配置、资源、缺失项目包安装和项目扩展执行的信任选择。它依次考虑显式 override、项目资源、扩展决策、已存信任与默认策略；需要询问但没有 UI 时返回 false，取消选择也不自动信任。<a href="26-sources.html#evidence-p09">P09</a></p>
+<p>工具调用的 beforeToolCall 可以阻止某次行动，但项目 trust 不等于逐命令批准，更不等于操作系统沙箱。设计判断：项目代码能影响宿主扩展装载时，应在加载边界建立信任；工具真正执行时仍需独立执行策略。这两个问题不能用同一个 approved 字段混在一起。</p>
+</section>
 <section id="将提议决策和执行凭证分开" class="level2">
 <h2>将提议、决策和执行凭证分开</h2>
 <p>Invocation 是模型提议经过规范化后的行动；Decision 是 allow、deny 或 ask；Grant 是准许执行的凭证。不要用一个可随意设置的 <code>approved</code> 布尔字段表示全部过程。</p>

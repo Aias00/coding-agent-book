@@ -1,5 +1,45 @@
 # 第 12 章 执行隔离：文件、网络、身份与不可信仓库
 
+## DeepSeek：共享策略与执行后端分离
+
+源码事实：`SandboxExecutionPolicy` 包含 mode、workspaceRoot 及可选 sessionId；mode 为 read-only、workspace-write、danger-full-access。接口明确声明它管理文件效果，网络和进程可见性不在这套词汇中。因此不能从 workspace-write 推断“禁止联网”，也不能从 read-only 推断“敏感文件均不可读”。〔D28〕
+
+`SandboxPolicyService.resolve()` 的模式优先级为“本次显式模式 > 会话覆盖 > 部署默认”，工作区优先来自会话创建时的 cwd，缺少时才用配置的 fallback。显式模式是否已经获批由调用者在相应边界保证，resolver 本身不是审批器。会话覆盖由 sandbox/mode 日志事件恢复；当前事实另行提供给模型。路径保留执行世界的拼写，后端在真实文件系统上规范化。〔D29〕〔D14〕
+
+`sandbox-local` 才负责实际约束命令。当前平台链如下，策略接口和后端选择不是同一件事：
+
+| 平台 | 后端链 | 代码中需要注意的条件 |
+|---|---|---|
+| Linux | bwrap → Landlock | 多候选时执行有时限的功能探测，Landlock 可报告 partial |
+| macOS | Seatbelt | 默认单候选直接选择，执行时失败仍需处理，不能说启动前一定探测 |
+| Windows | windows-acl restricted-token runner | 当前实现明确报告 partial，不冒充绝对文件边界 |
+
+`SandboxEnforcement` 区分 full 与 partial。这里的 full 也只针对该接口承诺的文件效果，不能扩大成网络、资源配额和全部系统安全已经完备。配置自定义 runner 会改变选择与探测语义；生产部署要验证该 runner 真正落实所声明的能力。〔D28〕〔D30〕
+
+设计判断：返回“请求策略、实际后端、执行完整度、不可支持项”，比返回 sandboxed=true 更利于调用者决策。要求绝对边界的任务不应把 partial 当成 full；沙箱缺失和用户程序自身失败也应分别解释。
+
+## Codex：Linux 包装顺序与升级时保留禁止读取
+
+`LinuxSandboxCommand` 明确描述默认 bubblewrap 文件系统隔离与 seccomp 系统调用过滤；use_legacy_landlock 是显式启用的旧路径。apply-seccomp-then-exec 分支解释了执行顺序：先让 bubblewrap 建立文件视图，再施加 seccomp 与 no_new_privs，避免过早收紧妨碍启动器建立隔离。不能把所有路径统一说成“只依赖 Landlock”。〔C22〕
+
+权限升级还有一处重要保护：`unsandboxed_execution_allowed()` 检查文件策略是否含 denied-read。若有，直接退出沙箱会丢掉禁止读取的执行机制，所以不能将这类升级一概转成无沙箱运行；相关函数还调整升级参数以保留限制。编排器对特定远程执行器的能力也会进行核对。〔C12〕〔C05〕
+
+```text
+原权限：工作区可写；敏感目录禁止读取
+新需求：扩大某个写入范围
+正确目标：扩大获准范围，同时保留禁止读取
+```
+
+上例是依据代码意图归纳的设计要求，不是对任意部署配置的实测证明。权限范围应能分别表达和合并，单个“普通/管理员”开关很难描述保留哪些限制。
+
+## Claude Code 与 Pi：接入点不等于全部隔离实现
+
+Claude Code 的 sandbox-adapter 把设置转成 `@anthropic-ai/sandbox-runtime` 的配置，包括文件规则和网络配置；wrapWithSandbox 在沙箱启用时等待初始化，缺少初始化状态则报错，然后委托外部 runtime 包完成包装。仅凭 adapter 不能确认该依赖在所有平台的内部实现与实际隔离强度，也不能认为开关关闭时仍有同等限制。〔A18〕
+
+Pi 本地 Bash 的默认路径直接通过 child_process 启动 shell，支持替换 BashOperations。project-trust 决定项目资源和扩展的信任，不在这两段代码中建立操作系统文件或网络隔离。其他组合可以增加执行后端；这里只能确认已阅读的默认本地路径，不能给整个生态作“完全没有沙箱”的结论。〔P17〕〔P09〕
+
+设计判断：自建时可参考 DeepSeek 的策略/provider 分离和执行完整度，借鉴 Codex 在权限扩大时保持禁止项的处理；扩展后端时保留 Pi 的清晰 seam，并像 Claude adapter 一样明确初始化与依赖边界。上述组合是本书建议，不是任何一个项目现成的统一安全实现。
+
 ## 策略判断与真实限制分别负责什么
 
 策略层决定某项行动是否被允许，沙箱负责限制程序真实访问资源。一个测试脚本可以绕开模型工具 API 直接打开文件或联网，因此只在 read_file 工具检查路径不够。进程内插件同样可能直接调用宿主 API，逻辑 scope 不会自动隔离恶意扩展。

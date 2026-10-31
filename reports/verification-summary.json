@@ -1,8 +1,8 @@
 {
-  "edition": "2.1.0",
+  "edition": "2.2.0",
   "title": "AI Coding Agent 设计与实现",
   "research_date": "2026-10-30",
-  "epub_sha256": "10d91f37b0e63a79d0156828455b6b7f22c762c8de049b5f9884a281271202d4",
+  "epub_sha256": "11749fd8a339d1ecfedd990328fc1781f76a2d2f23f47a7cbfc666d20e63e4b9",
   "reference_kernel": {
     "command": "python3 -m unittest reference_agent.test_core -v",
     "tests": 18,
@@ -28,7 +28,7 @@
   "model_mode": "deterministic replaceable fixture model; no live provider API invoked",
   "upstream_products_built_or_executed": false,
   "real_model_cross_product_benchmark": false,
-  "evidence_files": 85,
+  "evidence_files": 90,
   "cli_smokes_from_edition_2_0_0": [
     "completed normal task",
     "injected crash after edit",
@@ -41,6 +41,7 @@
     "10 fault lab tests",
     "reader JavaScript syntax",
     "desktop and mobile browser QA",
-    "all four revised chapters at 390px"
+    "all five revised chapters at 390px",
+    "new sandbox source anchor"
   ]
 }

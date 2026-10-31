@@ -13,7 +13,7 @@
 
 ## 材料与验证方法
 
-研究脚本记录 85 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
+研究脚本记录 90 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
 
 这些快照作为设计方案的参考依据。可运行参考内核和故障实验见第 23 章；完整方案包含明确标注的扩展设计。未构建四个上游项目或执行统一真实模型评测。
 
@@ -163,6 +163,13 @@
 - 定位：第 1296 行，`    Compaction {`；文件共 4757 行。
 - SHA-256：`753498bc730ba21ded710d9aa2b2f9163e6bbe4eaa18f1c25d998c36138a54f7`
 - [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/protocol/src/models.rs#L1296)
+
+## C22 · codex {#evidence-c22}
+
+- 相对路径：`codex/codex-rs/linux-sandbox/src/linux_run_main.rs`
+- 定位：第 59 行，`pub struct LinuxSandboxCommand`；文件共 1198 行。
+- SHA-256：`2c8cdf628b8b8467cccf38227cada5295f5cb6a04888b860ea1b882fe2d19d53`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/linux-sandbox/src/linux_run_main.rs#L59)
 
 ## D01 · deepseek-harness {#evidence-d01}
 
@@ -352,6 +359,27 @@
 - 定位：第 113 行，`async function syncTools`；文件共 511 行。
 - SHA-256：`59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9`
 - [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/tools.ts#L113)
+
+## D28 · deepseek-harness {#evidence-d28}
+
+- 相对路径：`deepseek-harness/packages/sandbox/sandbox/src/index.ts`
+- 定位：第 40 行，`export interface SandboxExecutionPolicy`；文件共 182 行。
+- SHA-256：`46592025ce36d04ff8d1bfa9d6594dd8d1527883649ccf40ff7a169e94e68dc6`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox/src/index.ts#L40)
+
+## D29 · deepseek-harness {#evidence-d29}
+
+- 相对路径：`deepseek-harness/packages/sandbox/sandbox-policy/src/index.ts`
+- 定位：第 164 行，`resolve(request: SandboxPolicyRequest`；文件共 183 行。
+- SHA-256：`6fce58e5bf63475f761871389bbf01043fba859f22e44c805522c39afbff32d6`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-policy/src/index.ts#L164)
+
+## D30 · deepseek-harness {#evidence-d30}
+
+- 相对路径：`deepseek-harness/packages/sandbox/sandbox-local/src/index.ts`
+- 定位：第 160 行，`const PLATFORM_CHAINS`；文件共 583 行。
+- SHA-256：`282709d0bf789ad3ab9ec6a706f3aeaeac1632d80a08ded507a7b7caff860ac2`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-local/src/index.ts#L160)
 
 ## P01 · pi {#evidence-p01}
 
@@ -607,6 +635,13 @@
 - 相对路径：`ccsource/package/src-extracted/src/services/compact/timeBasedMCConfig.ts`
 - 定位：第 30 行，`const TIME_BASED_MC_CONFIG_DEFAULTS`；文件共 43 行。
 - SHA-256：`aede0336973766a4ae25d2625156d3f9300736896ed4691b566e1c98472fd6f9`
+- 本地提取文本与发布包 source map 嵌入文本一致。
+
+## A18 · ccsource {#evidence-a18}
+
+- 相对路径：`ccsource/package/src-extracted/src/utils/sandbox/sandbox-adapter.ts`
+- 定位：第 704 行，`async function wrapWithSandbox`；文件共 985 行。
+- SHA-256：`7a69378764884ce8bd042e6286ee24468a77c18bb2582aa007bc4b3fd799bfcb`
 - 本地提取文本与发布包 source map 嵌入文本一致。
 
 ## 官方补充资料

@@ -1,5 +1,5 @@
 {
-  "edition": "2.1.0",
+  "edition": "2.2.0",
   "review_date": "2026-10-30",
   "projects": {
     "codex": {
@@ -233,6 +233,16 @@
       "locator": "    Compaction {",
       "line": 1296,
       "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/protocol/src/models.rs#L1296"
+    },
+    {
+      "id": "C22",
+      "project": "codex",
+      "path": "codex-rs/linux-sandbox/src/linux_run_main.rs",
+      "sha256": "2c8cdf628b8b8467cccf38227cada5295f5cb6a04888b860ea1b882fe2d19d53",
+      "lines": 1198,
+      "locator": "pub struct LinuxSandboxCommand",
+      "line": 59,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/linux-sandbox/src/linux_run_main.rs#L59"
     },
     {
       "id": "D01",
@@ -503,6 +513,36 @@
       "locator": "async function syncTools",
       "line": 113,
       "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/tools.ts#L113"
+    },
+    {
+      "id": "D28",
+      "project": "deepseek-harness",
+      "path": "packages/sandbox/sandbox/src/index.ts",
+      "sha256": "46592025ce36d04ff8d1bfa9d6594dd8d1527883649ccf40ff7a169e94e68dc6",
+      "lines": 182,
+      "locator": "export interface SandboxExecutionPolicy",
+      "line": 40,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox/src/index.ts#L40"
+    },
+    {
+      "id": "D29",
+      "project": "deepseek-harness",
+      "path": "packages/sandbox/sandbox-policy/src/index.ts",
+      "sha256": "6fce58e5bf63475f761871389bbf01043fba859f22e44c805522c39afbff32d6",
+      "lines": 183,
+      "locator": "resolve(request: SandboxPolicyRequest",
+      "line": 164,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-policy/src/index.ts#L164"
+    },
+    {
+      "id": "D30",
+      "project": "deepseek-harness",
+      "path": "packages/sandbox/sandbox-local/src/index.ts",
+      "sha256": "282709d0bf789ad3ab9ec6a706f3aeaeac1632d80a08ded507a7b7caff860ac2",
+      "lines": 583,
+      "locator": "const PLATFORM_CHAINS",
+      "line": 160,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/sandbox/sandbox-local/src/index.ts#L160"
     },
     {
       "id": "P01",
@@ -885,6 +925,17 @@
       "lines": 43,
       "locator": "const TIME_BASED_MC_CONFIG_DEFAULTS",
       "line": 30,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A18",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/utils/sandbox/sandbox-adapter.ts",
+      "sha256": "7a69378764884ce8bd042e6286ee24468a77c18bb2582aa007bc4b3fd799bfcb",
+      "lines": 985,
+      "locator": "async function wrapWithSandbox",
+      "line": 704,
       "url": null,
       "matches_embedded_source": true
     }
