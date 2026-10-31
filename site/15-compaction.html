@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 15 章 上下文压缩：边界、结构化摘要与失败恢复 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/15-compaction.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="15-compaction" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html" aria-current="page">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-15-章-上下文压缩边界结构化摘要与失败恢复" class="level1">
+<h1>第 15 章 上下文压缩：边界、结构化摘要与失败恢复</h1>
+<section id="压缩触发要给自己留空间" class="level2">
+<h2>压缩触发要给自己留空间</h2>
+<p>当预计下一请求超过输入预算，或在安全边界达到压力阈值，才考虑压缩。输入估计必须包含待接纳用户内容和新的工具声明，不能只看上一次用量。阈值留出摘要请求、输出和重试余量。</p>
+<p>压缩不能解决所有超限。单个不可拆调用、系统规则或工具表过大时，总结旧聊天也无效。DeepSeek 基础压缩文档明确指出系统提示、工具及不可分单元的限制；Claude Code 的有效窗口计算也预留输出空间。<a href="26-sources.html#evidence-d12">D12</a><a href="26-sources.html#evidence-a07">A07</a></p>
+</section>
+<section id="可压缩边界如何选择" class="level2">
+<h2>可压缩边界如何选择</h2>
+<p>把已结算 step 作为基本单元，保留近期尾部。选择边界时不得切断工具调用与结果，不得把尚待批准的行动总结成已执行，不得跨越仍未解释的 unknown 副作用。</p>
+<pre class="text"><code>prefix = complete_units_before(boundary)
+tail = complete_units_from(boundary)
+summary = summarize(prefix, schema)
+validate(summary, required_facts)
+commit(checkpoint(summary, boundary, prompt_state), tail_reference)</code></pre>
+<p>摘要写入成功前保留旧上下文；不要先删除，再去请求模型总结。</p>
+</section>
+<section id="摘要应该使用明确字段" class="level2">
+<h2>摘要应该使用明确字段</h2>
+<pre class="text"><code>Summary {
+  user_goal, latest_constraints[], decisions[],
+  modified_files[{path, version, purpose}],
+  verification[{command_or_check, scope, result, version}],
+  unresolved_calls[], pending_work[],
+  important_evidence_refs[], excluded_history_boundary
+}</code></pre>
+<p>字段不保证模型一定填写正确，因此需要与持久事实核对：已修改文件来自工具结果，测试状态来自验证记录，未知调用来自调用表。自然语言可用于解释原因，机器事实应由确定性程序附上，减少摘要幻觉把“计划跑测试”写成“测试已通过”。</p>
+</section>
+<section id="系统和工具状态不能只靠摘要猜" class="level2">
+<h2>系统和工具状态不能只靠摘要猜</h2>
+<p>保存压缩边界对应的有效系统提示、工具版本与运行事实，恢复后重建下一请求。Pi 的压缩记录携带系统消息状态，Codex 的历史重建关注窗口和基线元数据，说明自然语言摘要之外仍需要机器状态。<a href="26-sources.html#evidence-p05">P05</a><a href="26-sources.html#evidence-c08">C08</a><a href="26-sources.html#evidence-c09">C09</a></p>
+<p>权限、cwd、分支和工具可见性变化需按各自规则重建，不能让摘要里的旧描述覆盖真实控制面状态。模型应知道当前限制，同时能追溯历史行动发生时的条件。</p>
+</section>
+<section id="压缩与新输入并发时怎么办" class="level2">
+<h2>压缩与新输入并发时怎么办</h2>
+<p>先记录压缩基于的 <code>history_version</code>。压缩期间允许新输入入队，但不改写被冻结前缀；提交前检查前缀版本仍兼容。若历史被回滚或分支切换，丢弃候选摘要；若只是尾部追加，可以把摘要接到明确尾部，前提是 checkpoint 定义支持。</p>
+<p>后台预压缩能减少等待，但候选必须经过版本检查。不能把昨天完成的摘要因为“已经准备好”直接安装到当前分支。</p>
+</section>
+<section id="压缩失败要有上限" class="level2">
+<h2>压缩失败要有上限</h2>
+<p>摘要请求可能超时、超限、被用户取消或返回无效字段。保留原历史，记录失败 attempt，尝试更小前缀或更强裁剪，但限制次数。连续失败后明确阻塞或要求新会话交接，避免为了压缩不断花费更多 token。</p>
+<p>工具输出裁剪与完整摘要是两种策略。前者保留关键片段与引用，后者重组历史。先移除明显冗余大输出，可能减少摘要需求；但删除错误证据后模型重跑同一任务，最终成本可能增加。</p>
+</section>
+<section id="验证压缩的真正指标" class="level2">
+<h2>验证压缩的真正指标</h2>
+<p>在压缩前注入“只改测试”、一项失败检查、一个已修改版本和一个未知调用。压缩后继续，确认约束仍生效、不会重新写已完成动作、不会把失败测试当成功。再模拟摘要提交失败，确认旧历史仍可恢复。</p>
+<p>压缩率和摘要可读性只是辅助指标。关键是后续行动是否保留必要事实和授权范围。一个简短却丢失用户限制的摘要，不能算成功压缩。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="14-retrieval.html" rel="prev"><small>上一章</small>第 14 章 代码理解：搜索、符号、LSP 与证据失效</a><a href="16-persistence.html" rel="next"><small>下一章</small>第 16 章 持久化：事务边界决定恢复能力</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

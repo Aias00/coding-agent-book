@@ -1,11 +1,36 @@
 {
-  "edition": "1.0.0",
+  "edition": "2.0.0",
+  "title": "AI Coding Agent 设计与实现",
   "research_date": "2026-10-30",
-  "epub_sha256": "330212a03bcb0ce2a84bcf90641b7747cf1cca8467859253ab62bf2573987c31",
-  "same_epub_hash_on_repeated_build": true,
-  "epubcheck": {"version": "5.4.0", "fatal": 0, "errors": 0, "warnings": 0},
-  "lab": {"command": "python3 -m unittest discover -s labs -v", "tests": 10, "failures": 0},
-  "browser": {"desktop_width": 1440, "mobile_width": 390, "status": "passed", "report": "browser-validation.json"},
+  "epub_sha256": "c42ae12acfe974c6c74f03b81ef385642f93a076c5cd5e68c32713d18df9f8ca",
+  "reference_kernel": {
+    "command": "python3 -m unittest reference_agent.test_core -v",
+    "tests": 18,
+    "failures": 0
+  },
+  "fault_lab": {
+    "command": "python3 -m unittest discover -s labs -v",
+    "tests": 10,
+    "failures": 0
+  },
+  "cli_smokes": [
+    "completed normal task",
+    "injected crash after edit",
+    "reopened task refuses unsafe replay"
+  ],
+  "epubcheck": {
+    "version": "5.4.0",
+    "fatal": 0,
+    "errors": 0,
+    "warnings": 0
+  },
+  "browser": {
+    "desktop_width": 1440,
+    "mobile_width": 390,
+    "status": "passed",
+    "report": "browser-validation.json"
+  },
+  "model_mode": "deterministic replaceable fixture model; no live provider API invoked",
   "upstream_products_built_or_executed": false,
   "real_model_cross_product_benchmark": false
 }

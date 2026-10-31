@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 22 章 可观测性与评测：把失败归到正确模块 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/22-observability.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="22-observability" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html" aria-current="page">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-22-章-可观测性与评测把失败归到正确模块" class="level1">
+<h1>第 22 章 可观测性与评测：把失败归到正确模块</h1>
+<section id="关联身份先于仪表盘" class="level2">
+<h2>关联身份先于仪表盘</h2>
+<p>为 session、turn、step、attempt、call 和 process 建立父子关系，记录时间、结果类别和必要版本。trace 帮助分析等待与执行，持久事件帮助恢复，两者目标不同。丢失一个调试 span 不应破坏业务状态，业务结果不能只存在 trace 平台。</p>
+<p>敏感参数和源代码使用受控引用。指标标签不要放任意路径、完整错误和用户输入，避免高基数与信息泄露。错误类别用固定枚举，详细诊断保留在有访问控制的产物里。</p>
+</section>
+<section id="时间要按关键路径解释" class="level2">
+<h2>时间要按关键路径解释</h2>
+<p>分别记录模型排队、首 token、流持续、工具等待、工具体、审批等待、日志提交和恢复时间。并发阶段会重叠，不能简单求和当总耗时。队首等待需要与工具体执行区分，才能知道是调度还是实际工具慢。</p>
+<p>同样 token 使用量也要区分逻辑 step 与实际 attempt。一次请求三次失败后成功，用户只看到一个回答，但实际成本更高；隐藏重试会让这类差异无法解释。</p>
+</section>
+<section id="评测先定义任务成功" class="level2">
+<h2>评测先定义任务成功</h2>
+<p>修复任务需要目标测试、相关回归、范围约束和改动审查。只检查最终文本含“完成”是在测自我报告。只检查某个公开测试通过，则可能奖励删除测试或绕过逻辑。</p>
+<p>任务集覆盖定位、修改、构建、迁移、跨文件重构和环境受限场景。控制仓库初态、模型配置、权限与预算，重复运行报告分布。没有这些条件，不把一次演示推广成架构优劣结论。</p>
+</section>
+<section id="分层验证比一个端到端分数更有用" class="level2">
+<h2>分层验证比一个端到端分数更有用</h2>
+<p>模型 adapter 用记录流测协议；循环用脚本模型测状态；工具用真实临时文件和进程测副作用；授权用参数变化测绑定；恢复用故障注入测重复执行；真实模型端到端再测任务完成。各层失败能定位责任。</p>
+<p>脚本模型测试不能证明代码推理能力，真实模型测试也不能替代事务故障测试。本书参考内核与 labs 都属于确定性机制验证。</p>
+</section>
+<section id="故障矩阵" class="level2">
+<h2>故障矩阵</h2>
+<table>
+<thead>
+<tr>
+<th>注入点</th>
+<th>主要断言</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型流在参数中间断开</td>
+<td>不派发不完整调用</td>
+</tr>
+<tr>
+<td>审批后参数或策略改变</td>
+<td>旧 grant 拒绝</td>
+</tr>
+<tr>
+<td>文件读取后被修改</td>
+<td>原修改不覆盖新内容</td>
+</tr>
+<tr>
+<td>调用已接纳但未派发</td>
+<td>恢复从同一调用继续</td>
+</tr>
+<tr>
+<td>写后结果提交前退出</td>
+<td>不盲目重跑，结果未知</td>
+</tr>
+<tr>
+<td>结果提交后通知失败</td>
+<td>客户端可按 seq 重放</td>
+</tr>
+<tr>
+<td>压缩候选版本失效</td>
+<td>不安装过期摘要</td>
+</tr>
+<tr>
+<td>worker 租约失效</td>
+<td>停止派发，旧 fencing 被拒绝</td>
+</tr>
+<tr>
+<td>用户取消与工具完成同时到达</td>
+<td>一致终态，保留已发生效果</td>
+</tr>
+</tbody>
+</table>
+<p>每条测试检查真实效果与持久事实。不要仅检查异常类型或最终回答。</p>
+</section>
+<section id="安全评测看真实动作" class="level2">
+<h2>安全评测看真实动作</h2>
+<p>在仓库放入诱导越界读取和外传的文本，观察模型提议、策略拒绝和实际执行分别发生什么。模型被诱导但执行器拒绝，属于模型层失败、执行层限制生效，应分别统计。</p>
+<p>隔离测试必须在目标操作系统和 provider 上运行。mock sandbox 只能证明调用了某个接口，不能证明真实进程被限制。</p>
+</section>
+<section id="从失败分类反推优化" class="level2">
+<h2>从失败分类反推优化</h2>
+<p>大量重复读取先检查检索与上下文；大量越权提议先检查来源表达与工具范围；大量未知结果先检查幂等和恢复；大量提交冲突先检查单写者；大量无效测试先检查环境一致性。不要在没有分类时先增加模型、工具和子代理。</p>
+<p>把回归任务、记录流和故障 fixture 纳入发布检查，变更 schema 或生命周期时更新对应测试。避免只为新 UI 写截图测试，却让核心恢复协议悄悄改变。</p>
+</section>
+<section id="本书已经验证的范围" class="level2">
+<h2>本书已经验证的范围</h2>
+<p>参考内核 18 项测试与较小实验 10 项测试验证本仓库的实现机制；出版检查验证 EPUB 和静态阅读网站。它们不是四个上游产品运行测试，也不是统一真实模型 benchmark。完整结果随第二版发布，便于读者复核。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="21-interfaces.html" rel="prev"><small>上一章</small>第 21 章 产品接口：CLI、IDE、Web 与人机协作</a><a href="23-reference.html" rel="next"><small>下一章</small>第 23 章 参考实现：一个真正由模型响应驱动的内核</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

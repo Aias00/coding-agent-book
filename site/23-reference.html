@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 23 章 参考实现：一个真正由模型响应驱动的内核 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/23-reference.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="23-reference" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html" aria-current="page">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-23-章-参考实现一个真正由模型响应驱动的内核" class="level1">
+<h1>第 23 章 参考实现：一个真正由模型响应驱动的内核</h1>
+<section id="程序结构与实际范围" class="level2">
+<h2>程序结构与实际范围</h2>
+<p><code>reference_agent/core.py</code> 定义 Call、Response、Request、Model、Tool、Policy、Store、Workspace 和 Kernel。<code>__main__.py</code> 提供初始化、运行和事件查看；<code>test_core.py</code> 验证关键行为。只使用 Python 标准库，默认脚本模型，无 API 密钥和外部服务。运行目标为 macOS/Linux，文件锁使用 fcntl，未提供 Windows 锁实现。</p>
+<p>与固定顺序执行四个函数的演示不同，Kernel 每一步把已提交历史交给 Model，按返回的 calls 决定执行，再将结果送回下一次请求。FixtureModel 读取历史选择读取、编辑、验证或停止；替换 Model 实现即可改变行动提议，工具与存储无需跟着改。</p>
+<p>这仍是有意收窄的可信单机内核：一个数据库一个会话，进程锁防止多个 actor 同时使用；无通用 shell、无操作系统沙箱、无完整 SDK、无多 agent。文件读取可并行，文件写入保持同步短操作。固定 fixture 验证器不执行任意仓库代码。</p>
+<p>每个数据库只演示一个任务生命周期。已完成后再次运行表示读取原任务完成状态，不代表对外部新改动重新验证；新的目标或工作区版本应创建新任务与调用身份。本例通过新目录开始新任务，生产版本应实现多 turn 及证据有效性管理。</p>
+</section>
+<section id="运行一次完整任务" class="level2">
+<h2>运行一次完整任务</h2>
+<p>使用尚不存在的目录：</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> reference_agent init /tmp/agent-design-normal</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> reference_agent run /tmp/agent-design-normal <span class="at">--allow-edit</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> reference_agent events /tmp/agent-design-normal</span></code></pre></div>
+<p>第一条创建有意带错误的 <code>paths.py</code> 和任务文件。第二条模型先请求两次读取，再依据读取哈希提出精确修改，再调用固定验证器，最后返回完成。四次模型请求对应四个决策阶段，工具动作来自实际 Response，而不是 Kernel 的硬编码 if edit。</p>
+<p><code>--allow-edit</code> 是本示例明确的执行许可。省略时编辑返回错误，脚本模型报告受阻，任务为 partial，文件不变。它不是生产交互式审批系统；完整审批队列方案见第 11 章。</p>
+</section>
+<section id="不可变调用怎样实现" class="level2">
+<h2>不可变调用怎样实现</h2>
+<p>Call 保存 <code>arguments_json</code> 而不是可变字典。创建时 canonical 序列化，读取参数时重新解析，防止调用者持有字典引用后悄悄修改。Request 同样保存已分离的历史和工具声明 JSON，并记录摘要 revision。</p>
+<p>这并非任意对象的通用冻结器，但对于示例的 JSON 调用边界足够明确。真实模型 adapter 先完成参数块，再构造 Call；未完成 finish reason 的响应只记录 attempt/incomplete，不执行工具。</p>
+</section>
+<section id="sqlite-事务对应哪条约束" class="level2">
+<h2>SQLite 事务对应哪条约束</h2>
+<p><code>Store.accept</code> 同一事务插入调用意图与 assistant/settled。<code>Store.dispatched</code> 检查指纹并记录派发。<code>Store.settle</code> 同一事务更新结果与 tool/result。重复结果必须相同，不同结果冲突。事件序号由数据库分配。</p>
+<p>工具执行不发生在长数据库事务里，否则慢调用会占用写锁。派发与结果是两个短事务，中间存在真实未知窗口，程序通过恢复政策处理而非假装消除。</p>
+</section>
+<section id="并发与独占的代码位置" class="level2">
+<h2>并发与独占的代码位置</h2>
+<p><code>Kernel.batch</code> 将连续 parallel 调用放入有界 semaphore 组，<code>gather</code> 收集结果，按原始顺序提交；exclusive 调用单独形成屏障。普通工具异常转换成结果，进程丢失类异常保留未结算派发，供恢复判断。</p>
+<p>参考实现没有滚动结果即时提交，也没有动态工具热卸载。要升级时先保留测试中的顺序与屏障不变量，再替换调度算法。</p>
+</section>
+<section id="修改与验证的证据" class="level2">
+<h2>修改与验证的证据</h2>
+<p>读取工具返回正文哈希；编辑工具检查哈希、旧文本唯一和结果大小，临时文件替换后返回新哈希。验证器只接受预定的 fixture 修复文本，再执行四个词法路径用例，记录对应实现哈希。</p>
+<p>Kernel 完成前检查验证来源确实是 verify_paths，并对应当前实现版本。仅把一个 read 调用命名为 verify-1 不能伪造完成证据。这个测试说明“看 id 像验证”与“真实经过验证工具”有重要区别。</p>
+</section>
+<section id="制造写入后崩溃" class="level2">
+<h2>制造写入后崩溃</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> reference_agent init /tmp/agent-design-crash</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> reference_agent run /tmp/agent-design-crash <span class="at">--allow-edit</span> <span class="at">--crash-after-edit</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> reference_agent run /tmp/agent-design-crash <span class="at">--allow-edit</span></span></code></pre></div>
+<p>第二条在文件变化后、结果提交前模拟进程丢失。第三条恢复已接纳的 pending response，发现 edit dispatched 且非 replay-safe，返回 OutcomeUnknown。程序不会先让模型生成一个新编辑 id，也不会再次修改文件。</p>
+<p>需要体验显式后置核对，可用较小实验：</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> labs/harness_lab.py init /tmp/agent-window-demo</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> labs/harness_lab.py run /tmp/agent-window-demo <span class="at">--crash</span> after-edit</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> labs/harness_lab.py run /tmp/agent-window-demo <span class="at">--reconcile</span></span></code></pre></div>
+<p>两个演示使用独立目录和存储，不能混用。它们模拟提交窗口，不模拟所有断电、文件系统和介质故障。</p>
+</section>
+<section id="运行机制测试" class="level2">
+<h2>运行机制测试</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> unittest reference_agent.test_core <span class="at">-v</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-m</span> unittest discover <span class="at">-s</span> labs <span class="at">-v</span></span></code></pre></div>
+<p>18 项内核测试覆盖完整循环、无重复恢复、权限拒绝、截断不执行、写后中断、文件冲突、调用身份、授权绑定、路径拒绝、单 actor、有界并发、独占屏障、持久预算、取消和验证身份。10 项小实验测试聚焦日志与后置核对。</p>
+<p>接真实模型时只实现 Model 接口并遵守完整响应与错误约定；加入任意 shell 前先落实第 10、12 章的执行环境。把每次扩展接到已有管线，保持测试能证明同样约束。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="22-observability.html" rel="prev"><small>上一章</small>第 22 章 可观测性与评测：把失败归到正确模块</a><a href="24-delivery.html" rel="next"><small>下一章</small>第 24 章 交付路线：从可运行内核到可维护产品</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

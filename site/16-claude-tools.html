@@ -1,50 +1,16 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时。24 章源码分析、故障实验与 68 项证据索引。">
-<meta name="color-scheme" content="light dark"><title>第 16 章 Claude Code：工具接口如何同时服务模型与人 · Coding Agent 工程剖析</title>
-<link rel="canonical" href="https://aias00.github.io/coding-agent-book/16-claude-tools.html"><link rel="stylesheet" href="assets/reader.css">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第二版章节入口 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="16-claude-tools" data-edition="1.0.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
-<a class="brand" href="index.html">CODING AGENT <span>工程剖析</span></a>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
-<aside id="sidebar"><a class="book-home" href="index.html">源码、运行时与工程边界</a><nav aria-label="全书目录"><p class="nav-group">开篇 · 建立研究方法</p><ul><li><a href="00-preface.html">序言：从会回答问题到能完成工程任务</a></li><li><a href="01-harness.html">第 1 章 运行框架究竟控制什么</a></li><li><a href="02-evidence-case.html">第 2 章 如何读源码，以及贯穿全书的修复案例</a></li></ul><p class="nav-group">第一篇 · Codex</p><ul><li><a href="03-codex-turn.html">第 3 章 Codex：回合执行与步骤快照</a></li><li><a href="04-codex-tools.html">第 4 章 Codex：工具计划、执行门禁与并发</a></li><li><a href="05-codex-process.html">第 5 章 Codex：终端进程为何需要独立生命周期</a></li><li><a href="06-codex-history.html">第 6 章 Codex：压缩、记录与历史重建</a></li></ul><p class="nav-group">第二篇 · DeepSeek Harness</p><ul><li><a href="07-dsh-plugins.html">第 7 章 DeepSeek Harness：插件体系不是功能列表</a></li><li><a href="08-dsh-loop.html">第 8 章 DeepSeek Harness：从日志形成不可变请求</a></li><li><a href="09-dsh-scheduler.html">第 9 章 DeepSeek Harness：有序策略与并行执行</a></li><li><a href="10-dsh-durability.html">第 10 章 DeepSeek Harness：流式体验、持久格式与子代理</a></li></ul><p class="nav-group">第三篇 · Pi</p><ul><li><a href="11-pi-layers.html">第 11 章 Pi：小循环内核与完整编程应用</a></li><li><a href="12-pi-tools.html">第 12 章 Pi：工具钩子、并发模式与编辑前置条件</a></li><li><a href="13-pi-session.html">第 13 章 Pi：会话树、压缩与项目可信度</a></li><li><a href="14-pi-durable.html">第 14 章 Pi Durable：把继续执行写成状态机</a></li></ul><p class="nav-group">第四篇 · Claude Code</p><ul><li><a href="15-claude-evidence.html">第 15 章 Claude Code：先确定材料能证明什么</a></li><li><a href="16-claude-tools.html" aria-current="page">第 16 章 Claude Code：工具接口如何同时服务模型与人</a></li><li><a href="17-claude-permissions.html">第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></li><li><a href="18-claude-context.html">第 18 章 Claude Code：上下文预算、记录链与后台任务</a></li></ul><p class="nav-group">第五篇 · 比较与实践</p><ul><li><a href="19-comparison.html">第 19 章 横向比较：把名称还原为责任</a></li><li><a href="20-security.html">第 20 章 安全：从不可信文本到真实执行权限</a></li><li><a href="21-recovery.html">第 21 章 可靠性：副作用之后的未知窗口</a></li><li><a href="22-evaluation.html">第 22 章 评测与可观测性：衡量完成任务的代价</a></li><li><a href="23-lab.html">第 23 章 动手实验：构建一个会承认未知的运行框架</a></li><li><a href="24-design.html">第 24 章 从研究到自建：一条可维护的实现路线</a></li></ul><p class="nav-group">附录 · 复核与维护</p><ul><li><a href="25-glossary.html">附录 A 术语、阅读地图与自检答案</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 构建、验证与修订说明</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 1.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
-<main id="main" tabindex="-1"><article><section id="第-16-章-claude-code工具接口如何同时服务模型与人" class="level1">
-<h1>第 16 章 Claude Code：工具接口如何同时服务模型与人</h1>
-<section id="tool-类型承担了完整产品协议" class="level2">
-<h2>Tool 类型承担了完整产品协议</h2>
-<p>可见 <code>Tool</code> 定义不仅有输入 schema 和 <code>call</code>，还包括是否启用、是否只读、是否适合并发、中断行为、结果大小限制和呈现相关方法。某些字段取决于实际输入，而不是一个永远固定的工具标签。<a href="26-sources.html#evidence-a04">A04</a></p>
-<p>这很合理：同一个 Bash 工具可以读取目录，也可以执行部署；同一个代理工具可以同步等待，也可以启动后台任务。产品需要根据这次输入解释风险、调度与显示，不能只从工具名称推导行为。</p>
-</section>
-<section id="一次调用的可见路径" class="level2">
-<h2>一次调用的可见路径</h2>
-<p><code>runToolUse</code> 先在当前可用工具中查找名称，特定历史别名有受限兼容处理。未知工具返回可关联的错误结果。之后执行 schema 校验、工具自身输入校验、pre-tool hooks、权限决策、实际调用和结果处理。<a href="26-sources.html#evidence-a06">A06</a></p>
-<p>这条路径把错误分成不同类别：工具不存在、类型错误、业务参数错误、权限拒绝与执行失败。模型可以对不同错误采取不同修复方式。若全部只返回“执行失败”，模型往往会盲目重试相同动作。</p>
-</section>
-<section id="hooks-改输入以后谁来负责" class="level2">
-<h2>Hooks 改输入以后谁来负责</h2>
-<p>执行管线允许 hook 与权限流程影响处理后的输入。最终行动需要以实际决策后的参数执行，而不是审批 A、执行 B。可见实现专门保存和更新 processed input，并协调 hook 决策与常规权限路径。<a href="26-sources.html#evidence-a06">A06</a></p>
-<p>对自建系统而言，这是需要重点测试的组合：参数改写后是否重新满足 schema，权限提示展示的是否正是将执行的内容，审计记录能否区分模型原始提议与最后实际执行参数。正文没有把这些问题全都归结为该产品已经完善解决，而是指出它们在实现中必须有责任归属。</p>
-</section>
-<section id="流式工具调度如何减少等待" class="level2">
-<h2>流式工具调度如何减少等待</h2>
-<p><code>StreamingToolExecutor</code> 在完整工具块进入后建立队列，根据工具定义和解析后的输入判断并发安全。并发安全的调用可以互相重叠，不安全的调用需要独占。结果按接收顺序缓冲输出，进度则有即时传播路径。<a href="26-sources.html#evidence-a05">A05</a></p>
-<p>这不意味着只要 JSON 参数刚流出几个字符就执行。可用的完整块与未完成参数需要区分，否则会执行半截行动。流式调度节省的是“等待整个助手响应结束之后才开始所有工具”的额外间隙。</p>
-<p>修复案例里，两个读取工具能尽早开始；编辑工具如果被判为独占，就不能与其他独占动作任意混跑。分类错误的后果依然由工具语义承担，调度器不会自动识别所有资源冲突。</p>
-</section>
-<section id="同伴失败和用户取消不是同一种中断" class="level2">
-<h2>同伴失败和用户取消不是同一种中断</h2>
-<p>执行器维护子取消控制器，对同伴 Bash 错误、用户中断及流式回退等情况产生不同的合成结果。工具还可以声明新用户输入到来时是取消还是阻塞等待，未声明有默认行为。<a href="26-sources.html#evidence-a04">A04</a><a href="26-sources.html#evidence-a05">A05</a></p>
-<p>这样的差别直接影响体验。用户说“停一下”时，读取操作可以尽快取消；正在执行的关键写入可能需要先进入可解释终态。把所有工具统一暴力中断，既可能破坏数据，也会使恢复难以判断。</p>
-</section>
-<section id="呈现接口为什么不是附属品" class="level2">
-<h2>呈现接口为什么不是附属品</h2>
-<p>搜索、读取、编辑与权限拒绝在 UI 中需要不同解释。一个工具结果如果只携带长文本，界面就只能猜测这是 diff、错误还是后台任务状态。工具定义中的呈现与结构信息，让产品可以压缩重复读取、突出改动，并明确显示被用户拒绝的行动。<a href="26-sources.html#evidence-a04">A04</a></p>
-<p>这种集成提高了体验一致性，但让通用工具接口更重。复用此类设计时，建议把模型内容、机器状态和呈现元数据分开定义，使无 UI 的调用者也能够理解结果，而不是依赖某个 React 组件才能知道执行是否成功。</p>
-</section>
-</section>
-</article><nav class="pager" aria-label="章节翻页"><a href="15-claude-evidence.html" rel="prev"><small>上一章</small>第 15 章 Claude Code：先确定材料能证明什么</a><a href="17-claude-permissions.html" rel="next"><small>下一章</small>第 17 章 Claude Code：权限决策与 shell 的特殊复杂性</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><h1>章节已按设计问题重写</h1><p>第二版已重新组织内容，<a href="07-tool-contract.html">继续阅读对应设计章节 →</a></p></article><nav class="pager" aria-label="章节翻页"><span></span><span></span></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
 <div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
 <dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
 </body></html>

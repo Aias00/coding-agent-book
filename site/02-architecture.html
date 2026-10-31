@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 2 章 总体架构：控制面、执行面与事实存储 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/02-architecture.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="02-architecture" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html" aria-current="page">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-2-章-总体架构控制面执行面与事实存储" class="level1">
+<h1>第 2 章 总体架构：控制面、执行面与事实存储</h1>
+<section id="先分开三种权力" class="level2">
+<h2>先分开三种权力</h2>
+<p>控制面负责任务、循环、请求构造、策略与预算；执行面负责文件、进程、网络和外部服务；事实存储负责事件、调用状态与产物引用。UI 通过命令提出意图，通过事件观察状态。模型通过响应提出行动，不能直接持有宿主凭据或修改存储。</p>
+<pre class="text"><code>CLI / IDE / Web
+      ↓ Command                   ↑ Event / Projection
+Session Actor → Context Builder → Model Adapter
+      ↓               ↓               ↓ Response
+Policy Engine ← Tool Planner ← Response Assembler
+      ↓ Approved Invocation
+Scheduler → Executor / Workspace / Sandbox
+      ↓ Settled Outcome
+Event Store + Artifact Store → UI projection / next request</code></pre>
+<p>这张依赖图有一个刻意安排：Executor 不直接调用模型，UI 不直接修改会话历史。否则工具实现可能在无人记录时补发模型请求，界面可能显示一段从未进入有效历史的“完成消息”。</p>
+<figure>
+<img src="assets/architecture.svg" alt="控制面、执行面与事实存储之间的职责关系。" />
+<figcaption aria-hidden="true">控制面、执行面与事实存储之间的职责关系。</figcaption>
+</figure>
+</section>
+<section id="单进程起步保持接口可拆分" class="level2">
+<h2>单进程起步，保持接口可拆分</h2>
+<p>第一版用单进程运行会话 actor、SQLite 和工具执行器即可。接口仍应通过不可变请求对象传递状态，避免工具拿到整个会话实例并随意修改。将来把执行器迁到容器或远程 worker 时，只需要把同一调用对象序列化，而不是重新寻找隐藏依赖。</p>
+<p>设计接口如下：</p>
+<pre class="text"><code>Model.generate(PreparedRequest, Cancellation) -&gt; ResponseStream
+Tools.resolve(ToolPlanRevision, name) -&gt; ToolDefinition
+Policy.evaluate(Invocation, Authority) -&gt; Decision
+Executor.run(ApprovedInvocation) -&gt; ToolOutcome
+Store.commit(ExpectedVersion, Events, StateChanges) -&gt; Commit</code></pre>
+<p><code>ApprovedInvocation</code> 应由策略层构造，不能让任意工具调用者用一个 <code>approved=true</code> 字段伪造。跨进程版本可采用签名票据或由受信控制面代理派发；同进程版本至少隐藏构造入口并重新验证关键字段。</p>
+</section>
+<section id="明确模块的状态所有者" class="level2">
+<h2>明确模块的状态所有者</h2>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>唯一写入者</th>
+<th>其他模块如何读取</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>会话有效历史、输入认领</td>
+<td>Session Actor</td>
+<td>不可变快照或投影</td>
+</tr>
+<tr>
+<td>进程表、输出游标</td>
+<td>Process Manager</td>
+<td>进程句柄 API</td>
+</tr>
+<tr>
+<td>审批请求与授权票据</td>
+<td>Policy Service</td>
+<td>按调用查询</td>
+</tr>
+<tr>
+<td>工具注册版本</td>
+<td>Registry Owner</td>
+<td>固定版本 ToolPlan</td>
+</tr>
+<tr>
+<td>已提交事件与状态</td>
+<td>Store transaction</td>
+<td>按序读取</td>
+</tr>
+</tbody>
+</table>
+<p>工具只能返回结果和附加上下文建议，由 actor 在规定边界接纳。不要同时让模型消费者线程、工具线程和 WebSocket 回调修改 <code>messages[]</code>。</p>
+</section>
+<section id="用一条完整任务检查架构" class="level2">
+<h2>用一条完整任务检查架构</h2>
+<p>搜索工具返回目标函数位置；读取工具返回正文与内容哈希；模型据此提出编辑；策略绑定文件、参数与权限；执行器重新读文件检查哈希，完成替换；结果提交后才形成下一次请求；模型请求测试；验证器解释退出状态；最终报告列出差异与检查。</p>
+<p>每一步都有输入版本和结果身份，因此能够解释模型为什么作出下一步。若编辑失败，失败结果进入模型；若授权等待，actor 保持任务状态但不阻塞所有其他会话；若存储提交失败，UI 不应看到已经确定成功的终结事件。</p>
+</section>
+<section id="四个参考项目怎样帮助选型" class="level2">
+<h2>四个参考项目怎样帮助选型</h2>
+<p>Codex 的步骤上下文与工具计划适合参考快照边界；DeepSeek Harness 的服务定义、provider、consumer 帮助设计可替换执行世界；Pi 的模型层与循环内核帮助缩小核心职责；Claude Code 的工具协议提醒产品需要呈现元数据和中断语义。<a href="26-sources.html#evidence-c02">C02</a><a href="26-sources.html#evidence-c11">C11</a><a href="26-sources.html#evidence-d15">D15</a><a href="26-sources.html#evidence-p02">P02</a><a href="26-sources.html#evidence-a04">A04</a></p>
+<p>这些经验可以组合，但不能直接共享未经适配的对象。尤其不能把 Pi 的内存消息、DeepSeek 的事件序列和 Codex 的协议项都称作一个统一 Message 后丢失各自语义。适配时应先建立本系统的领域模型，再写有损转换的明确规则。</p>
+</section>
+<section id="演进时保留哪些边界" class="level2">
+<h2>演进时保留哪些边界</h2>
+<p>引入远程执行后，控制面仍拥有授权、调用身份与结果接纳权；worker 只持有最小执行能力。引入多个模型后，adapter 负责协议差异，actor 负责重试和历史。引入多个 UI 后，事件格式继续统一，终端文本只是一个呈现结果。</p>
+<p>架构验收可以做替换实验：把本地读取换成假远程读取，模型层与 UI 不应改动；把模型换成脚本驱动，工具与存储不应改动。如果替换一个模块需要修改所有层，就要检查是否泄露了隐含职责。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="01-requirements.html" rel="prev"><small>上一章</small>第 1 章 需求建模：Agent 到底要交付什么</a><a href="03-domain.html" rel="next"><small>下一章</small>第 3 章 领域模型：身份、版本与必须成立的不变量</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

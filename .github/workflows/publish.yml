@@ -35,6 +35,7 @@ jobs:
         run: |
           python3 scripts/build.py
           python3 scripts/check.py
+          python3 -m unittest reference_agent.test_core -v
           python3 -m unittest discover -s labs -v
           node --check web/reader.js
           java -jar "$RUNNER_TEMP/epubcheck-5.4.0/epubcheck.jar" dist/coding-agent-engineering.epub --json dist/epubcheck.json

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 4 章 执行内核：输入认领、模型步与停止条件 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/04-loop.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="04-loop" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html" aria-current="page">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-4-章-执行内核输入认领模型步与停止条件" class="level1">
+<h1>第 4 章 执行内核：输入认领、模型步与停止条件</h1>
+<section id="将主循环写成状态机" class="level2">
+<h2>将主循环写成状态机</h2>
+<p>建议状态为 idle、preparing、generating、executing、awaiting_approval、stopping 和 terminal。状态机拥有会话写权限，工具与模型回调通过消息投递结果。每个状态允许的输入不同：generating 可以接收取消与新输入，awaiting_approval 可以接收审批响应，terminal 不能再偷偷启动工具。</p>
+<figure>
+<img src="assets/state-machine.svg" alt="正常回合与取消收敛的状态交接。" />
+<figcaption aria-hidden="true">正常回合与取消收敛的状态交接。</figcaption>
+</figure>
+<pre class="text"><code>while turn is active:
+  claim inputs once at the step boundary
+  snapshot = prepare_context_and_tool_plan()
+  request = persist_and_freeze(snapshot)
+  response = await model_attempts(request)
+  if response is incomplete: settle_attempt_and_choose_recovery()
+  else:
+    commit assistant message and call intents
+    outcomes = await scheduler.execute(response.calls)
+    commit outcomes in source order
+  apply queued steering at next boundary
+  decision = stop_policy(history, verification, budget, pending_input)</code></pre>
+<p>这段是设计伪代码。实际代码还要处理审批暂停、存储失败和取消收敛，不能把它直接包进无限 <code>while True</code> 就认为实现完成。</p>
+</section>
+<section id="输入为什么只能认领一次" class="level2">
+<h2>输入为什么只能认领一次</h2>
+<p>用户在模型生成时补充“只改测试”。系统先保存输入，再在下一可接纳边界认领。网络 attempt 重试不应重复追加这条输入。需要记录 <code>input_id</code> 和 <code>claimed_by_step</code>，将认领与请求准备的相关状态一起提交。</p>
+<p>如果请求准备在认领后被取消，要规定输入是留给未完成 step，还是归还待处理队列。推荐持久记录接纳状态，恢复时按状态处理，不通过“最后一条消息似乎是用户”猜测。DeepSeek 的准备调用与输入接纳顺序、Pi 的 steering/follow-up 读取位置可提供参考。<a href="26-sources.html#evidence-d02">D02</a><a href="26-sources.html#evidence-p01">P01</a></p>
+</section>
+<section id="stop-policy-不是一个-finish-reason" class="level2">
+<h2>Stop policy 不是一个 finish reason</h2>
+<p>模型没有工具请求，只意味着本次生成没有提出行动。框架还要检查未完成验证、排队输入、待决审批和显式停止要求。建议优先级：用户取消与硬预算优先；协议或执行未知阻塞自动继续；自然工具结果触发下一步；必要验证未完成时允许受限继续；最后才正常结束。</p>
+<p>继续策略需要限制次数。一个“你还没完成”的 stop hook 如果没有新证据和预算，会制造无限自我确认循环。Codex 在停止 hook 与后续输入之间有明确处理，说明停止本身就是执行协议。<a href="26-sources.html#evidence-c01">C01</a></p>
+</section>
+<section id="三种不同的重试" class="level2">
+<h2>三种不同的重试</h2>
+<p>模型网络重试复用已冻结请求，改变 attempt 身份；上下文超限后的压缩产生新的 request revision；工具失败后的修复通常需要模型新 step。不能把三者都写成 <code>continue</code> 而不更新身份。尤其不能在模型网络重试里重新执行上一批工具。</p>
+<p>一个 step 若已经提交助手消息及调用意图，恢复应从工具状态继续；不能再次请求模型生成另一批同义调用。持久化章节将给出步骤状态与事务组合。</p>
+</section>
+<section id="带工具的正常时序" class="level2">
+<h2>带工具的正常时序</h2>
+<table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>主循环行为</th>
+<th>必须持久的事实</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>t0</td>
+<td>接收用户输入</td>
+<td>input received</td>
+</tr>
+<tr>
+<td>t1</td>
+<td>固定上下文与工具版本</td>
+<td>step prepared / request revision</td>
+</tr>
+<tr>
+<td>t2</td>
+<td>请求模型，接收流</td>
+<td>attempt started；增量可短暂</td>
+</tr>
+<tr>
+<td>t3</td>
+<td>接收完整响应</td>
+<td>assistant settled + call intents</td>
+</tr>
+<tr>
+<td>t4</td>
+<td>准备、批准并派发工具</td>
+<td>authorization / dispatched</td>
+</tr>
+<tr>
+<td>t5</td>
+<td>接纳结果</td>
+<td>tool result + step settlement</td>
+</tr>
+<tr>
+<td>t6</td>
+<td>决定继续或结束</td>
+<td>next step 或 turn ended</td>
+</tr>
+</tbody>
+</table>
+<p>流式 UI 可以在 t2 显示文字，但 t3 前的文字不能作为已经完成的行动证明。</p>
+</section>
+<section id="取消到达不同阶段时如何处理" class="level2">
+<h2>取消到达不同阶段时如何处理</h2>
+<p>准备中取消：不发模型请求，保留未完成输入。生成中取消：停止继续消费，结算中断尝试，拒绝不完整参数。工具等待中取消：不派发。工具执行中取消：停止补充新调用，通知可取消执行，等待已开始调用收敛；超时仍不能确认结果则标记 unknown。停止完成后才发布确定终结。</p>
+<p>参考内核采用保守的“完整助手响应后再派发工具”，减少第一次实现的状态交叉。第 6 章说明如何升级为完整工具块就绪后提前执行，同时处理流式回退。两种方案都有效，选择取决于延迟收益是否值得额外恢复复杂度。</p>
+</section>
+<section id="验收案例" class="level2">
+<h2>验收案例</h2>
+<p>脚本模型第一次要求读取、第二次编辑、第三次测试、第四次结束。检查模型真实调用次数、历史配对和终态；再让它永远调用同一工具，确认预算停止；让它返回带空文本的完整工具响应，确认仍执行工具；让它返回无工具的文本但验证未完成，确认不会错误宣布完成。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="03-domain.html" rel="prev"><small>上一章</small>第 3 章 领域模型：身份、版本与必须成立的不变量</a><a href="05-model-adapter.html" rel="next"><small>下一章</small>第 5 章 模型适配层：统一语义，显式保留差异</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

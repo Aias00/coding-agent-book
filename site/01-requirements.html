@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 1 章 需求建模：Agent 到底要交付什么 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/01-requirements.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="01-requirements" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html" aria-current="page">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-1-章-需求建模agent-到底要交付什么" class="level1">
+<h1>第 1 章 需求建模：Agent 到底要交付什么</h1>
+<section id="将自然语言目标变为验收条件" class="level2">
+<h2>将自然语言目标变为验收条件</h2>
+<p>“修复路径校验漏洞”不是完整工程需求。我们把教学任务限定为：修复 <code>/work/demo-backup</code> 被误认为 <code>/work/demo</code> 子目录的问题；接受正常子路径和工作目录本身；拒绝词法上的父目录逃逸；补充测试；只修改指定实现和测试文件；报告实际检查。符号链接隔离属于执行环境设计，不能靠这个词法函数承担。</p>
+<p>一个任务对象至少包含：</p>
+<pre class="text"><code>TaskSpec {
+  objective, acceptance_criteria[], workspace_id,
+  allowed_changes[], forbidden_actions[],
+  verification_plan[], budget, completion_policy
+}</code></pre>
+<p><code>objective</code> 供模型理解，<code>allowed_changes</code> 和 <code>forbidden_actions</code> 还要传给工具授权层。<code>verification_plan</code> 指定可运行检查；<code>completion_policy</code> 定义没有完成检查时应返回“部分完成”还是继续尝试。不能把所有字段拼成一段提示词之后，就丢弃机器可检查的信息。</p>
+</section>
+<section id="完成状态应该至少有五种" class="level2">
+<h2>完成状态应该至少有五种</h2>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>具体含义</th>
+<th>必须提供的证据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>completed</td>
+<td>修改和必要验证均完成</td>
+<td>变更摘要、测试结果与范围</td>
+</tr>
+<tr>
+<td>partial</td>
+<td>有可交付修改，但部分检查未完成</td>
+<td>已完成项、剩余项与原因</td>
+</tr>
+<tr>
+<td>blocked</td>
+<td>缺少权限、环境或必要输入</td>
+<td>阻塞点、恢复条件</td>
+</tr>
+<tr>
+<td>cancelled</td>
+<td>用户要求停止，运行已收敛</td>
+<td>已发生动作与仍待核验状态</td>
+</tr>
+<tr>
+<td>failed</td>
+<td>当前预算与恢复策略下无法推进</td>
+<td>错误类别和保留产物</td>
+</tr>
+</tbody>
+</table>
+<p>此外，单次工具可能是 <code>unknown</code>，表示派发后结果不明。任务终态与工具终态不能用同一个枚举：一个测试结果未知的任务，可能以 partial 结束，同时保留待核验调用。</p>
+</section>
+<section id="agent脚本与工作流如何分工" class="level2">
+<h2>Agent、脚本与工作流如何分工</h2>
+<p>模型适合在不完整信息下选择读取位置、解释失败并提出修改。确定性程序适合检查参数、路径、预算、版本和调用身份。固定的发布步骤适合显式工作流。把需要强制执行的规则留给模型记住，会使正确性依赖每一次生成；把所有判断写成规则，又会失去处理新问题的能力。</p>
+<p>参考方案让模型选择下一步行动，由执行器验证行动能否执行；验证器判断可检查的验收条件；停止策略合并模型意图、预算与验证状态。最终回答是一份报告，不是唯一完成证据。</p>
+</section>
+<section id="建立能力与风险矩阵" class="level2">
+<h2>建立能力与风险矩阵</h2>
+<p>先列出搜索、读取、编辑、测试、联网、依赖安装、Git 提交和发布。逐项写清输入、输出、真实副作用、所需权限、可否重试、可否取消和验证方式。例如读取可能安全重试但不能无限读取；测试脚本可能写缓存、联网或启动进程，不能因为名称是 test 就自动归类为只读。</p>
+<p>第一版可以只提供工作区搜索、限量读取、精确编辑和固定验证命令。安装依赖、任意 shell 与外部发布需要更完整的权限和执行环境。能力少的起点仍应经过与未来工具相同的调度、日志和授权路径，避免第二版再重写内核。</p>
+</section>
+<section id="把性能要求写成可测试约束" class="level2">
+<h2>把性能要求写成可测试约束</h2>
+<p>不要只写“响应快”。可以规定：工具进度每秒最多发布若干次；单次读取限额；最大模型步数；并发工具上限；取消后多长时间进入收敛状态；超过日志保留量如何归档。具体数值是可配置的部署参数，不能散落在业务代码里。</p>
+<p>预算至少包括模型请求次数、输入输出 token 估计、工具运行时间和总墙钟时间。不同预算分别触发不同结果：模型调用额度耗尽可以保留已完成修改；命令超时需要停止进程并判断结果；用户取消应优先于继续探索。</p>
+</section>
+<section id="本章产物与验收" class="level2">
+<h2>本章产物与验收</h2>
+<p>产物是一份 <code>TaskSpec</code>、能力矩阵和终态表。验收时先不给模型，直接向执行器提交超出范围的编辑、超额读取和未经授权命令，确认它们被拒绝。如果系统只能通过提示词阻止这些动作，需求尚未落到实现中。</p>
+<p>参考：Pi 的工具前后钩子、Codex 的执行编排和 Claude Code 的结构化工具接口，都提供了把行动控制放到执行路径上的位置。<a href="26-sources.html#evidence-p01">P01</a><a href="26-sources.html#evidence-c05">C05</a><a href="26-sources.html#evidence-a04">A04</a></p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="00-preface.html" rel="prev"><small>上一章</small>序言：设计一套能够交付代码的 Agent</a><a href="02-architecture.html" rel="next"><small>下一章</small>第 2 章 总体架构：控制面、执行面与事实存储</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

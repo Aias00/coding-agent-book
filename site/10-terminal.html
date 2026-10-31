@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 10 章 命令执行：进程树、输出游标与后台任务 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/10-terminal.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="10-terminal" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html" aria-current="page">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-10-章-命令执行进程树输出游标与后台任务" class="level1">
+<h1>第 10 章 命令执行：进程树、输出游标与后台任务</h1>
+<section id="启动进程与等待进程分成两个接口" class="level2">
+<h2>启动进程与等待进程分成两个接口</h2>
+<pre class="text"><code>start(argv, cwd, env_profile, authority) -&gt; ProcessHandle
+poll(process_id, after_cursor, max_bytes) -&gt; OutputChunk + ProcessState
+write_stdin(process_id, bytes, authority) -&gt; InteractionResult
+terminate(process_id, reason) -&gt; TerminationReport</code></pre>
+<p>ProcessState 至少区分 starting、running、exited、terminating、lost。一次 poll 等待窗口结束，只表示这次没有拿到终态，不应直接杀进程。Codex unified exec 的进程管理体现了命令调用与长期进程的分离。<a href="26-sources.html#evidence-c07">C07</a></p>
+</section>
+<section id="argv-优先shell-必须显式" class="level2">
+<h2>argv 优先，shell 必须显式</h2>
+<p>固定测试命令使用 argv 数组，避免 shell 额外解释变量、重定向和命令替换。需要 shell 时明确 shell binary、登录模式和脚本字符串，把这些全部纳入授权指纹。安全策略不能一边检查 argv，另一边实际执行重新拼接的 shell 文本。</p>
+<p>工作目录应是执行世界里的路径，不由控制面先解析成另一个主机的路径。环境采用 allowlist 或命名 profile，默认不继承所有凭据、代理和开发者私有配置。PATH、语言与分页设置影响输出复现，要有明确定义。</p>
+</section>
+<section id="三种时间限制" class="level2">
+<h2>三种时间限制</h2>
+<p>调用等待窗口控制这次 API 最多阻塞多久；进程运行期限控制真实命令最长多久；无活动回收期限控制遗留后台资源。三者分别配置与记录。长测试超过调用等待窗口可以继续运行，但超过真实期限需要进入 termination 流程。</p>
+<p>总任务取消后是否保留开发服务器，也需要产品规则。默认不留下无人管理的进程；用户明确要求保持服务时，将它注册为可发现、可停止的后台产物，而非让它意外成为孤儿。</p>
+</section>
+<section id="终止要面对整个进程树" class="level2">
+<h2>终止要面对整个进程树</h2>
+<p>POSIX 方案可在新 session/process group 中启动命令，取消先向组发温和信号，等待短暂 grace period，再升级强制终止并 reap。Windows 需要使用对应的进程归属与终止机制。仅杀 shell 父进程可能留下测试 worker 或服务器。</p>
+<p>系统必须记录信号和实际退出状态。发送 SIGTERM 成功不代表进程已退出；强杀后 stdout reader 也要收敛。无法确认时返回 lost 或 unknown，避免界面显示“已停止”而进程仍在消耗资源。</p>
+</section>
+<section id="输出必须边读边限制" class="level2">
+<h2>输出必须边读边限制</h2>
+<p>不能等待进程结束后才读 stdout/stderr，否则管道填满会使进程阻塞。使用独立读取任务，保存总字节数、保留头尾、完整输出产物和截断标志。把退出码与输出展示独立：尾部包含 PASS 不代表最终退出成功。</p>
+<p>游标应表示已持久输出中的位置，poll 返回 next_cursor。客户端重复请求同一游标，可以得到同一段数据；不能因为网络重试就永久跳过输出。多个 UI 各自维护游标，不共享一个 destructive read。</p>
+</section>
+<section id="stdin-需要自己的权限语义" class="level2">
+<h2>stdin 需要自己的权限语义</h2>
+<p>启动命令时用户可能只同意查看帮助，随后发送 y 却会确认删除。stdin 交互不能因已经拥有 process_id 就自动无限允许。绑定进程身份、启动权限、当前状态与输入类别；对敏感交互要求新的批准。</p>
+<p>口令输入不应回显或进入普通模型历史。交互工具需要区分 PTY 与普通管道，Ctrl-C、EOF、换行和字符输入是不同操作。没有 PTY 的环境不能假装支持所有交互程序。</p>
+</section>
+<section id="进程身份不能只用-pid" class="level2">
+<h2>进程身份不能只用 PID</h2>
+<p>PID 可能复用。句柄应包含系统生成的随机 identity、创建时间或执行器 generation，执行器内部再映射到 PID。重启后发现进程是否仍属于本会话，需要受信归属信息，不能看到同一 PID 就继续写 stdin。</p>
+<p>远程 worker 丢失连接时，控制面应查询任务状态或按取消 token 终止；无法确认不自动重启同一写命令。测试和构建也可能有副作用，因此 replay policy 必须由具体执行约束确定。</p>
+</section>
+<section id="本书实现范围与验收" class="level2">
+<h2>本书实现范围与验收</h2>
+<p>参考内核提供固定 fixture 验证工具，不暴露任意 shell；较小 labs 实验运行固定 Python unittest 子进程。生产进程管理按本章接口扩展。测试应覆盖大输出、无输出长运行、子进程派生、stdin 阻塞、超时、取消、worker 重启和输出读取失败，而不是只检查 <code>echo hello</code>。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="09-filesystem.html" rel="prev"><small>上一章</small>第 9 章 文件系统工具：路径约束与乐观并发修改</a><a href="11-approvals.html" rel="next"><small>下一章</small>第 11 章 授权与审批：批准的必须是将要执行的行动</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

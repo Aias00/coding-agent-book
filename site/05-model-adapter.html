@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 5 章 模型适配层：统一语义，显式保留差异 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/05-model-adapter.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="05-model-adapter" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html" aria-current="page">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-5-章-模型适配层统一语义显式保留差异" class="level1">
+<h1>第 5 章 模型适配层：统一语义，显式保留差异</h1>
+<section id="adapter-应该拥有哪部分职责" class="level2">
+<h2>Adapter 应该拥有哪部分职责</h2>
+<p>模型层负责消息序列化、供应商请求、流事件解码、用量归一化和错误分类；主循环负责决定重试、接纳历史和继续执行。adapter 不应悄悄重跑工具，也不应把权限拒绝包装成一条“模型回答”。Pi 的独立模型层与 DeepSeek 的 prepared call 为划分责任提供了参考。<a href="26-sources.html#evidence-p15">P15</a><a href="26-sources.html#evidence-d02">D02</a></p>
+<p>设计接口可以采用：</p>
+<pre class="text"><code>prepare(route, capabilities, request) -&gt; BoundRequest
+stream(BoundRequest, attempt_id, cancellation) -&gt; AsyncIterator&lt;ModelEvent&gt;
+
+ModelEvent = TextDelta | ToolArgumentsDelta | ToolCallComplete
+           | UsageUpdate | ResponseComplete | ResponseFailed</code></pre>
+<p><code>BoundRequest</code> 保存实际 provider、模型、端点类别、序列化参数与能力决定。prepare 后若路由变化，必须重新准备并记录，不能只改 HTTP URL。</p>
+</section>
+<section id="能力矩阵不能压成一个-supports_tools" class="level2">
+<h2>能力矩阵不能压成一个 supports_tools</h2>
+<p>至少记录：工具调用协议、是否支持并行调用、是否允许中途系统提示更新、图片放在哪些角色、结构化输出形式、上下文窗口、输出上限、缓存字段和取消方式。某些能力可由 provider 配置声明，某些只能由模型目录确认；未知时使用保守路径。</p>
+<p>例如模型 A 支持在历史尾部更新工具声明，模型 B 要求每次请求携带完整当前工具表。内部历史可以相同，wire format 需要不同。adapter 应用规则并记录有损转换，不能让循环去判断十几种供应商字段。</p>
+</section>
+<section id="provider-消息转换必须保持调用配对" class="level2">
+<h2>Provider 消息转换必须保持调用配对</h2>
+<p>内部历史中 assistant 的工具调用与后续 tool result 通过 <code>call_id</code> 关联。转换时不可因为裁剪、角色合并或错误过滤而留下孤立结果。供应商可能要求每个调用都有结果，或对结果顺序有额外约束。归一化层应先检查内部协议，再根据供应商约束分组。</p>
+<p>对于不支持的内容，应明确选择拒绝、转换成可识别的文本引用或换路由。不要静默删除图片后继续宣称模型“看过截图”。转换记录应说明内容被怎样表达，但不复制敏感二进制到普通审计日志。</p>
+</section>
+<section id="错误分类决定后续动作" class="level2">
+<h2>错误分类决定后续动作</h2>
+<table>
+<thead>
+<tr>
+<th>错误</th>
+<th>adapter 输出</th>
+<th>循环一般怎样处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>网络瞬断、服务暂忙</td>
+<td>transient，是否已收到有效流</td>
+<td>按预算退避重试</td>
+</tr>
+<tr>
+<td>参数或协议错误</td>
+<td>invalid_request</td>
+<td>修正序列化或停止</td>
+</tr>
+<tr>
+<td>上下文超限</td>
+<td>context_overflow</td>
+<td>压缩后新建请求版本</td>
+</tr>
+<tr>
+<td>凭据失效</td>
+<td>authentication</td>
+<td>更新凭据或阻塞</td>
+</tr>
+<tr>
+<td>速率限制</td>
+<td>rate_limit + 可用等待信息</td>
+<td>等待或换路线，计入总期限</td>
+</tr>
+<tr>
+<td>用户取消</td>
+<td>cancelled</td>
+<td>收敛，不按普通故障重试</td>
+</tr>
+</tbody>
+</table>
+<p>不要根据错误文本里是否包含某个英文单词决定全部行为。优先使用结构化状态；无法确定错误类别时保留 unknown，不把所有 4xx 都当作不可重试，也不把所有异常都当作网络问题。</p>
+</section>
+<section id="隐藏重试会破坏可观察性" class="level2">
+<h2>隐藏重试会破坏可观察性</h2>
+<p>HTTP 库重试两次，SDK 重试两次，循环再重试两次，可能将一次逻辑请求放大。推荐选定一个重试所有者，记录 attempt 与总预算；其他层只做明确允许的传输重连。DeepSeek 的 pi-ai 适配文档明确区分框架可见重试与 SDK 重试。<a href="26-sources.html#evidence-d18">D18</a></p>
+<p>退避可以采用 full jitter：第 n 次取 <code>[0, min(cap, base×2^n)]</code> 内随机等待，同时受总截止时间限制。等待期间可取消，不要用不可中断的长 sleep。若服务返回 Retry-After，先验证数值与上限，再纳入调度。</p>
+</section>
+<section id="凭据解析要晚凭据内容不要进快照" class="level2">
+<h2>凭据解析要晚，凭据内容不要进快照</h2>
+<p>请求配置记录 credential reference，而不是明文 key。真正发送前解析短期凭据，防止准备很久后令牌已过期。重试时可以刷新凭据，但不要把业务内容与权限范围一起无记录地修改。Pi 的循环在调用前解析 API key，体现了这一时机差异。<a href="26-sources.html#evidence-p01">P01</a></p>
+<p>参考内核只定义 <code>Model.generate(Request)</code>，通过脚本模型验证循环。连接真实模型时实现这个接口；需要流式 UI 时再实现本章更丰富的事件协议。不要为了证明架构运行而默认调用付费服务。</p>
+</section>
+<section id="验收细节" class="level2">
+<h2>验收细节</h2>
+<p>用记录流 fixture 验证 Unicode、工具参数、多调用、usage 缺失、错误终态和取消。断言最终 Request 的角色、工具表和调用配对，而不只比较生成文本。再验证一次上下文超限只触发有限次压缩，错误凭据不会进入无限重试。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="04-loop.html" rel="prev"><small>上一章</small>第 4 章 执行内核：输入认领、模型步与停止条件</a><a href="06-streaming.html" rel="next"><small>下一章</small>第 6 章 流式协议：字节、内容块与可执行行动</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

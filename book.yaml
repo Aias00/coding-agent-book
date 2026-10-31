@@ -1,9 +1,9 @@
-title: Coding Agent 工程剖析
-subtitle: 从 Codex、DeepSeek Harness、Pi 与 Claude Code 读懂智能体运行时
+title: AI Coding Agent 设计与实现
+subtitle: 架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考
 author: Aias00
 lang: zh-CN
 date: '2026-10-30'
-identifier: urn:uuid:e51747be-bb28-42a1-9d14-2739063c6345
+identifier: urn:uuid:b0878bd3-f612-4bd4-973b-0dbfa2cb6239
 rights: 原创分析文字与图示 CC BY 4.0；原创代码 MIT；上游材料权利归各自作者。
-description: 基于四份本地源码与发布包快照，分析编程智能体的执行循环、工具、权限、上下文、持久化和故障恢复，附可复现实验与源码证据索引。
+description: 从零设计 AI Coding Agent 的工程方案，详解架构、状态机、模型协议、工具调度、文件修改、授权隔离、上下文、持久化与恢复，附可运行参考内核和源码依据。
 toc-title: 目录

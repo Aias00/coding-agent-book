@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 19 章 扩展机制：依赖注入、生命周期与协议版本 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/19-extension.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="19-extension" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html" aria-current="page">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-19-章-扩展机制依赖注入生命周期与协议版本" class="level1">
+<h1>第 19 章 扩展机制：依赖注入、生命周期与协议版本</h1>
+<section id="扩展点按责任定义" class="level2">
+<h2>扩展点按责任定义</h2>
+<p>常见扩展包括模型 provider、工具、上下文贡献、执行器、存储 provider 和 UI renderer。不要用一个任意修改全局对象的 callback 承载所有功能。每类扩展声明输入、输出、顺序、是否可短路、错误归属与资源释放方式。</p>
+<pre class="text"><code>Extension {
+  id, version, required_services[], provided_services[],
+  register(context) -&gt; Disposable,
+  compatibility, trust_requirement
+}</code></pre>
+<p>服务定义接口，provider 提供实现，consumer 使用接口。DeepSeek 的能力接口明确采用这三类角色；Pi 的扩展类型与 runner 则展示钩子式组织。<a href="26-sources.html#evidence-d15">D15</a><a href="26-sources.html#evidence-p10">P10</a><a href="26-sources.html#evidence-p11">P11</a></p>
+</section>
+<section id="装载时先检查依赖图" class="level2">
+<h2>装载时先检查依赖图</h2>
+<p>构造有向图，检查缺失服务、重复 provider、循环依赖与版本不兼容。只有配置完整才激活消费者。不要发现 provider 缺失就静默跳过工具，否则用户看到的是能力随机消失。</p>
+<p>加载失败需要回滚已注册贡献。注册返回 disposer，组合器按逆序撤销；已经启动的连接和 worker 也要等待清理。将“注册是一种资源”写进 API，能避免插件卸载后残留工具和监听器。</p>
+</section>
+<section id="scope-是可见性范围" class="level2">
+<h2>Scope 是可见性范围</h2>
+<p>不同 agent 可以拥有不同工具与上下文贡献。scope 决定注册继承和事件接收，不能用字符串 prefix 代替真实身份。DeepSeek 使用不透明 scope key 与父子链，提供了避免范围混淆的参考。<a href="26-sources.html#evidence-d09">D09</a></p>
+<p>scope 不阻止同进程恶意代码访问宿主模块。第三方不可信扩展应通过独立进程或受限协议运行，只得到明确定义的能力。安装一个具有宿主代码执行权的插件，本质上是重要信任动作。</p>
+</section>
+<section id="热卸载要先停止新的借用" class="level2">
+<h2>热卸载要先停止新的借用</h2>
+<p>推荐状态 active → draining → disposed。draining 后不再把工具放入新 ToolPlan；已有步骤持有旧 runtime 引用，完成或取消后释放。引用数归零再关闭连接与卸载代码。超时无法清理时，报告 leaked/failed 状态，而不是假装释放成功。</p>
+<p>同名新版本不能直接替换旧调用。旧调用恢复需要原版本或明确迁移策略；缺少原实现时返回阻塞，而不是用新参数解释猜测。</p>
+</section>
+<section id="钩子组合需要定义短路规则" class="level2">
+<h2>钩子组合需要定义短路规则</h2>
+<p>观察型钩子只读取事件，策略型钩子返回决定，中间件型钩子通过 next 继续。不同类型不要混成一个模糊返回值。瀑布中不调用 next 会短路，因此注册顺序属于行为语义。<a href="26-sources.html#evidence-d16">D16</a></p>
+<p>mandatory guard 不接受普通插件放宽，后置脱敏不改变真实执行效果。插件异常由框架归一化，并说明是在准备、执行还是呈现阶段失败。一个日志插件报错不应无条件回滚已经完成的写操作。</p>
+</section>
+<section id="mcp-接入的实际工作" class="level2">
+<h2>MCP 接入的实际工作</h2>
+<p>MCP 工具接入仍要管理 server 生命周期、连接 readiness、schema 变化、认证、超时和名称冲突。远端工具声明的只读或并发提示不能自动成为宿主强安全保证；部署方需要自己的信任与权限规则。</p>
+<p>规范化远端名称后保留 server/tool 原始身份，授权与审计使用实际目标。server 重连后 schema revision 变化，下一请求更新工具计划；进行中的旧调用按原版本结算。</p>
+</section>
+<section id="code-mode-不应该绕过底层工具" class="level2">
+<h2>Code mode 不应该绕过底层工具</h2>
+<p>让模型写一段程序批量调用工具，能减少请求往返，但带来脚本 CPU、内存、运行时间和嵌套调用管理。脚本只拿到受控工具代理，不拿宿主任意 API；每个嵌套调用走共同策略与记录路径。</p>
+<p>如果脚本中断，已完成子调用结果应可发现；重跑脚本需要稳定 nested key 和子调用 replay policy。Pi Durable 的嵌套调用和 Pi 通用 runToolCall 分别提供持久与非持久层面的参考。<a href="26-sources.html#evidence-p12">P12</a><a href="26-sources.html#evidence-p01">P01</a></p>
+</section>
+<section id="验收" class="level2">
+<h2>验收</h2>
+<p>缺少 provider 要在启动时失败；加载一半异常要撤销注册；卸载期间新请求看不到工具、旧调用仍正确结算；renderer 故障不丢执行结果；远程 server 改 schema 不用旧 grant；嵌套调用不能绕过权限。插件市场和动态安装应在这些机制稳定后再开放。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="18-concurrency.html" rel="prev"><small>上一章</small>第 18 章 会话并发：单写者、租约、输入队列与分支</a><a href="20-multi-agent.html" rel="next"><small>下一章</small>第 20 章 多 Agent：分工、权限继承与结果整合</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

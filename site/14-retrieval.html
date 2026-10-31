@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 14 章 代码理解：搜索、符号、LSP 与证据失效 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/14-retrieval.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="14-retrieval" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html" aria-current="page">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-14-章-代码理解搜索符号lsp-与证据失效" class="level1">
+<h1>第 14 章 代码理解：搜索、符号、LSP 与证据失效</h1>
+<section id="先用最便宜的线索缩小范围" class="level2">
+<h2>先用最便宜的线索缩小范围</h2>
+<p>代码检索通常从文件名、错误栈、符号名和文本搜索开始。直接把全仓库向量化并不能替代这些精确线索。推荐检索顺序：路径与配置 → 精确符号或文本 → 相关调用者与测试 → 必要时语义召回 → 限量读取原文确认。</p>
+<p>每次检索输出位置与证据身份，不直接让摘要代替源文件。模型据此选择下一批读取，避免将大量不相关内容一次塞满上下文。</p>
+</section>
+<section id="定义统一证据对象" class="level2">
+<h2>定义统一证据对象</h2>
+<pre class="text"><code>CodeEvidence {
+  workspace_id, path, blob_hash,
+  start_line, end_line, symbol?, source_kind,
+  content_ref, retrieved_at, index_revision
+}</code></pre>
+<p>路径和行号帮助导航，blob_hash 说明内容版本，index_revision 说明检索索引版本。索引旧并不一定要全量重建，但必须承认结果可能过期，并在修改前重新读取真实文件。</p>
+</section>
+<section id="文本搜索的工程细节" class="level2">
+<h2>文本搜索的工程细节</h2>
+<p>默认遵循 ignore 规则并限制超大、二进制和依赖目录；用户明确指定的文件可进入另一路径，但仍经过权限检查。工具返回命中数量、是否截断、搜索范围和模式解释方式。正则与字面量是不同模式，不要让模型误把特殊字符当普通字符。</p>
+<p>限制输出之外还要限制搜索时间与扫描范围。一个灾难性正则或远程全盘扫描会消耗执行资源，不能仅通过截断展示解决。外部搜索程序的退出码需区分“无匹配”和“执行错误”。</p>
+</section>
+<section id="lsp-给语义位置也带来版本约束" class="level2">
+<h2>LSP 给语义位置，也带来版本约束</h2>
+<p>LSP 可提供定义、引用、诊断与重命名，但服务可能尚未初始化，文档版本可能落后，诊断可能异步到达。每条结果需要说明来自哪个 server、哪个 workspace 和哪个文档版本。先等 readiness，再请求；超时有退回文本搜索的明确路径。</p>
+<p>批量重命名返回 workspace edit 时，检查所有目标文件的版本与权限，再执行。不能因为结果由语言服务器生成就跳过修改授权。server 也是执行环境的一部分，启动参数和插件加载需要管理。</p>
+</section>
+<section id="多跳检索要有停止规则" class="level2">
+<h2>多跳检索要有停止规则</h2>
+<p>模型从函数跳到调用者，再到配置，再到测试，容易无限探索。可以给每个问题设置 evidence budget：读取文件数、累计 token、检索轮数和当前假设。若已有足够证据支持一个可验证修改，就转到实现；若线索冲突，记录具体待解问题再继续。</p>
+<p>检索器可输出“建议相关文件”，但不能把建议升级成事实。例如同名函数不一定是实际执行路径，测试目录出现关键字不一定覆盖目标平台。最终需要沿调用与入口确认。</p>
+</section>
+<section id="缓存与索引失效" class="level2">
+<h2>缓存与索引失效</h2>
+<p>文件修改后更新对应哈希，失效相关 chunk、符号位置和诊断。整个仓库发生分支切换时，不要继续使用前一棵工作树的向量索引。缓存键至少包含 workspace identity、文件内容版本和工具语义版本。</p>
+<p>未提交用户改动应纳入当前检索。只索引 Git HEAD 而忽略工作区，会让模型根据旧文件生成补丁。可采用 HEAD 索引加工作区 overlay，查询时优先覆盖改动文件。</p>
+</section>
+<section id="参考与验收" class="level2">
+<h2>参考与验收</h2>
+<p>四个项目中的文件、工具和执行环境机制说明了统一能力与位置引用的重要性；本章给出的是面向自建系统的组合方案，并不声称它们采用同一检索架构。能力替换时尤其要保持 LSP、文件和测试处于同一执行世界。<a href="26-sources.html#evidence-d15">D15</a><a href="26-sources.html#evidence-c07">C07</a><a href="26-sources.html#evidence-p07">P07</a></p>
+<p>验收用包含同名函数、过期索引、未提交改动和生成代码的仓库。让检索结果指出真实执行入口；编辑后再次查询应反映新内容；超时或无命中应返回明确结果，不能编造一个似乎合理的文件位置。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="13-context.html" rel="prev"><small>上一章</small>第 13 章 上下文构造：把窗口当作有预算的工作集</a><a href="15-compaction.html" rel="next"><small>下一章</small>第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

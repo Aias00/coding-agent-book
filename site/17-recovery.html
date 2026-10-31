@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 17 章 故障恢复：未知结果、幂等与重放政策 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/17-recovery.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="17-recovery" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html" aria-current="page">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-17-章-故障恢复未知结果幂等与重放政策" class="level1">
+<h1>第 17 章 故障恢复：未知结果、幂等与重放政策</h1>
+<section id="最关键的窗口在副作用之后" class="level2">
+<h2>最关键的窗口在副作用之后</h2>
+<p>工具已写文件或提交远程任务，成功结果还没进入存储，进程退出。恢复看到 dispatched，却没有结果。真实动作可能发生，也可能没发生。这个状态必须叫 unknown，不能把缺少本地结果解释为“未执行”。</p>
+<figure>
+<img src="assets/unknown-window.svg" alt="副作用发生到结果提交之间的未知窗口。" />
+<figcaption aria-hidden="true">副作用发生到结果提交之间的未知窗口。</figcaption>
+</figure>
+</section>
+<section id="按状态决定恢复而非一律重跑" class="level2">
+<h2>按状态决定恢复，而非一律重跑</h2>
+<table>
+<thead>
+<tr>
+<th>调用状态</th>
+<th>确定知道的事实</th>
+<th>恢复动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>intended</td>
+<td>意图被接纳，尚无派发记录</td>
+<td>重新校验并按当前授权决定</td>
+</tr>
+<tr>
+<td>awaiting approval</td>
+<td>等待特定决策</td>
+<td>恢复同一请求，过期则重建</td>
+</tr>
+<tr>
+<td>dispatched，无结果</td>
+<td>外部效果不明</td>
+<td>按 replay/reconcile 策略处理</td>
+</tr>
+<tr>
+<td>settled</td>
+<td>结果已提交</td>
+<td>复用记录，不重复执行</td>
+</tr>
+<tr>
+<td>unknown</td>
+<td>已确认不能自动判断</td>
+<td>查询后置状态或要求明确处理</td>
+</tr>
+</tbody>
+</table>
+<p>恢复整个 step 时，先补齐它已接纳的调用，不先请求模型生成一套新的调用。否则相同业务动作可能换一个 id 再次执行，绕开了调用级去重。</p>
+</section>
+<section id="三类重放政策" class="level2">
+<h2>三类重放政策</h2>
+<p>safe 表示可在定义的输入和环境条件下重跑，例如受限快照读取；reconcile 表示先查询外部状态，例如按幂等键查询远程构建；never 表示结果不明时停止自动执行，例如没有幂等支持的一次发送。</p>
+<p>“只读”也不自动 safe：请求可能计费、外部数据可能变化、查询可能消耗限额。safe 的含义应包括允许的重复成本和是否接受新结果。Pi Durable 对工具显式 replay 声明，以及不安全调用中断后返回 interrupted，提供了直接参考。<a href="26-sources.html#evidence-p12">P12</a></p>
+</section>
+<section id="幂等键要被真实执行系统识别" class="level2">
+<h2>幂等键要被真实执行系统识别</h2>
+<p>本地 call_id 只关联日志。外部服务必须接收并记住幂等键，才能把重试关联到原动作。建议将 tenant、业务操作、稳定调用身份与输入摘要组合，服务对相同键不同输入返回冲突。</p>
+<p>幂等键过期后再次重试也可能重复，因此记录服务去重窗口与恢复期限。不要在每次 retry 时生成新键。重试 attempt 可以变化，逻辑 operation key 保持不变。</p>
+</section>
+<section id="文件修改如何核对后置条件" class="level2">
+<h2>文件修改如何核对后置条件</h2>
+<p>精确替换可以保存 old_hash 与 intended_new_hash。恢复后若当前等于 new_hash，说明目标内容符合预期，可记录核对结果；若等于 old_hash，只能说明当前看起来未修改，是否重新执行还需按权限和任务状态判断；其他情况是冲突。</p>
+<p>即使匹配 new_hash，也不一定能证明只有本工具写过，但对于“达到这份目标内容”的教学任务，它可以满足后置条件。涉及计费、发送和版本增长时，这种内容相等不足以证明业务操作完成。</p>
+</section>
+<section id="重放不能忽略结果有效期" class="level2">
+<h2>重放不能忽略结果有效期</h2>
+<p>已提交测试结果只对当时的代码与环境有效。恢复后代码变了，应触发新的验证，而不是因为 call 已 settled 就永远跳过。将执行幂等与证据新鲜度分开：旧调用不重复，新的输入版本需要新调用。</p>
+<p>参考内核在完成前核对 fixture 验证结果绑定的当前实现哈希，但并不提供通用工作树依赖追踪。生产方案需要 read set、依赖版本或整个构建输入摘要。</p>
+</section>
+<section id="恢复要有所有者与熔断" class="level2">
+<h2>恢复要有所有者与熔断</h2>
+<p>多个 worker 同时发现未完成任务时，只有持有 lease 的恢复者可以推进；外部执行还需要 fencing，防止旧 worker 恢复联网后继续写。反复在同一检查点崩溃的任务，应停放并提供诊断，不无限自动启动。Pi Durable 的重启限制给出了这种故障控制思路。<a href="26-sources.html#evidence-p12">P12</a></p>
+<p>取消与崩溃也不同。用户取消不应被重启程序解释为“继续替用户完成”。持久记录取消意图和清理状态，恢复只处理必要收敛，不自动开启新工作。</p>
+</section>
+<section id="参考程序的行为" class="level2">
+<h2>参考程序的行为</h2>
+<p>参考内核遇到未结算的非 replay-safe 编辑，直接抛 OutcomeUnknown，停止循环；它不会让模型用新 id 再改一次。较小 labs 提供显式 reconcile 命令，展示后置内容核对。两个程序验证不同层级的恢复，不把教学内核包装成任意外部事务引擎。</p>
+<p>验收应记录真实副作用次数。只比较最终回答是否相同，发现不了重复发送或重复构建。对每个派发和提交边界注入故障，分别检查框架事实与外部事实。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="16-persistence.html" rel="prev"><small>上一章</small>第 16 章 持久化：事务边界决定恢复能力</a><a href="18-concurrency.html" rel="next"><small>下一章</small>第 18 章 会话并发：单写者、租约、输入队列与分支</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

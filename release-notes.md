@@ -1,11 +1,11 @@
-《Coding Agent 工程剖析》第一版：基于 Codex、DeepSeek Harness、Pi 和 Claude Code 本地快照的中文工程分析。
+《AI Coding Agent 设计与实现》第二版，按系统设计问题全面重写。
 
-- 24 章主体、序言与 3 篇附录，约 3.1 万中文汉字，不含源码证据索引。
-- 68 个源码文件的固定快照定位；Claude Code 引用的 13 个提取实现文件已与本地 source map 嵌入文本对照。
-- 覆盖执行循环、工具、权限、并发、上下文、取消、持久化与恢复。
-- 附原创封面、架构图和 10 项通过的无密钥实验测试。
-- EPUBCheck 5.4.0 验证通过，零错误、零警告。
+- 24 章主体、序言与 3 篇附录，重点给出字段、状态机、接口、算法、执行时序、失败分支和方案取舍。
+- 覆盖模型协议、流式调用、工具调度、文件并发修改、授权绑定、沙箱、进程、上下文、持久化、恢复、插件与多 Agent。
+- 新增可运行的模型驱动参考内核，18 项核心测试及 10 项小实验测试。
+- 保留四个项目的固定快照，68 项源码依据；明确区分设计方案与实际实现范围。
+- 在线阅读与 EPUB 使用同一书稿，提供搜索、手机目录、字号与阅读位置记忆。
 
-[在线阅读](https://aias00.github.io/coding-agent-book/) · [源代码与书稿](https://github.com/Aias00/coding-agent-book)
+[在线阅读](https://aias00.github.io/coding-agent-book/) · [参考实现与书稿](https://github.com/Aias00/coding-agent-book) · [第一版归档](https://github.com/Aias00/coding-agent-book/releases/tag/v1.0.0)
 
-本书是静态源码研究和原创机制实验，不是四个产品的统一真实模型性能评测。Claude Code 原始发布包、source map 与提取源码未随书分发。
+默认脚本模型用于机制验证，无需 API 密钥。真实模型流式接入、操作系统隔离与分布式执行等给出方案和验收要求，尚非完整生产实现。

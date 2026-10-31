@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 7 章 工具协议：声明、校验、授权与结果终结 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/07-tool-contract.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="07-tool-contract" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html" aria-current="page">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-7-章-工具协议声明校验授权与结果终结" class="level1">
+<h1>第 7 章 工具协议：声明、校验、授权与结果终结</h1>
+<section id="tooldefinition-应该包含哪些字段" class="level2">
+<h2>ToolDefinition 应该包含哪些字段</h2>
+<pre class="text"><code>ToolDefinition {
+  name, version, description, input_schema, output_schema?,
+  effect_class, concurrency_class, replay_policy,
+  timeout_policy, interrupt_policy, output_limits,
+  prepare?, execute, reconcile?, present?
+}</code></pre>
+<p><code>effect_class</code> 描述读写与外部效果，<code>concurrency_class</code> 描述能否重叠，两者不同。<code>replay_policy</code> 说明中断后能否重跑，<code>reconcile</code> 说明怎样查询已发生效果。产品呈现使用 <code>present</code> 或独立 renderer；无 UI 执行仍能理解结构化结果。</p>
+<p>Claude Code 的 Tool 同时表达并发、只读、中断和结果大小；Pi 的调用钩子提供统一执行路径；Codex 的工具计划将声明与运行时一起确定。<a href="26-sources.html#evidence-a04">A04</a><a href="26-sources.html#evidence-p02">P02</a><a href="26-sources.html#evidence-c11">C11</a></p>
+</section>
+<section id="注册表必须生成不可变工具计划" class="level2">
+<h2>注册表必须生成不可变工具计划</h2>
+<p>每次请求形成 <code>ToolPlan(revision, declarations, runtimes)</code>。模型看到哪个 schema，这批调用就按哪个版本解释。扩展加载后新工具只影响下一份计划。卸载若发生在调用途中，需要等待持有运行时的调用结束，或明确取消，不能把同名新实现直接套到旧参数上。</p>
+<p>重复名称应拒绝或显式命名空间化，不使用“最后注册覆盖前者”的隐式规则。工具发现可以延迟，但调用时必须检查该工具是否在当前可授权集合，不能从所有已安装工具里随意兜底。</p>
+</section>
+<section id="校验分成三层" class="level2">
+<h2>校验分成三层</h2>
+<p>第一层检查 JSON 结构与类型，拒绝未知字段或按明确兼容规则规范化。第二层检查语义：路径存在、旧文本唯一、命令参数组合有效。第三层检查权限：身份和范围是否允许。三层的失败需要不同错误码，模型才能选择修正参数、重新读取或请求授权。</p>
+<p>不要在校验器中执行真实副作用。例如“验证连接”若顺便创建远程资源，尚未授权就已经行动。准备步骤若必须联网，应把这项查询视为独立受控能力。</p>
+</section>
+<section id="规范化必须发生在审批之前" class="level2">
+<h2>规范化必须发生在审批之前</h2>
+<p>模型可能用相对路径、旧字段或字符串化数组表达参数。允许兼容时，先规范化到执行器实际使用的形式，再生成摘要和审批指纹。审批后 hook 若改参数，需要重新校验与重新授权。不能让用户看到旧参数、执行器运行新参数。</p>
+<p>建议保存原始参数和规范化参数的受控引用，并记录转换版本。日志中的敏感内容要脱敏，但审批绑定使用完整规范化摘要，避免脱敏后多个不同动作碰撞成相同展示。</p>
+</section>
+<section id="工具调用管线的精确顺序" class="level2">
+<h2>工具调用管线的精确顺序</h2>
+<pre class="text"><code>resolve(plan, name)
+→ parse and normalize
+→ schema + semantic validation
+→ extensible pre-policy
+→ mandatory guard
+→ approve actual invocation
+→ acquire execution resources
+→ recheck expiring conditions
+→ persist dispatch
+→ execute
+→ post-policy / content finalization
+→ commit result
+→ publish committed event</code></pre>
+<p>准备、权限询问可能等待很久；取得执行资源后重新检查授权有效期和文件前置条件。mandatory guard 只能收紧，不应被普通插件的 allow 覆盖。DeepSeek 的管线拆分与 guard 机制可参考。<a href="26-sources.html#evidence-d05">D05</a><a href="26-sources.html#evidence-d06">D06</a></p>
+</section>
+<section id="后处理不能抹掉真实效果" class="level2">
+<h2>后处理不能抹掉真实效果</h2>
+<p>post-policy 可以阻止敏感内容进入模型，但不能因为输出被隐藏就把已发生写入标成未执行。结果至少分开 <code>effect</code> 与 <code>content visibility</code>。如果工具成功，呈现器失败，仍然需要提交成功效果和呈现错误，不能让模型以为应该重跑。</p>
+<p>结构化输出与文本需要一致。钩子修改文本并脱敏时，同步处理 structured payload 与产物；否则敏感值可能仍在另一个字段。Pi 的结果覆盖说明强调了这类字段关系。<a href="26-sources.html#evidence-p02">P02</a></p>
+</section>
+<section id="错误结果的推荐形式" class="level2">
+<h2>错误结果的推荐形式</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="st">&quot;error&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;PRECONDITION_CHANGED&quot;</span><span class="fu">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;effect&quot;</span><span class="fu">:</span> <span class="st">&quot;none&quot;</span><span class="fu">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;文件在读取后发生变化&quot;</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;next_action&quot;</span><span class="fu">:</span> <span class="st">&quot;重新读取，再生成修改&quot;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>错误不应包含隐式指令让模型自动绕过限制。权限拒绝建议请求缺少的范围或停止；未知结果建议核对；参数错误建议修正。工具执行异常要分类，不能把所有异常都转成可安全重试。</p>
+</section>
+<section id="验收要求" class="level2">
+<h2>验收要求</h2>
+<p>准备一个嵌套工具，内部调用另一个受限工具，确认仍走同一授权管线。测试未知名称、版本变化、审批后参数修改、钩子重写、输出后处理失败和重复结果提交。协议越统一，越容易保证新增能力没有绕过核心约束。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="06-streaming.html" rel="prev"><small>上一章</small>第 6 章 流式协议：字节、内容块与可执行行动</a><a href="08-scheduling.html" rel="next"><small>下一章</small>第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

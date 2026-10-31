@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 18 章 会话并发：单写者、租约、输入队列与分支 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/18-concurrency.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="18-concurrency" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html" aria-current="page">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-18-章-会话并发单写者租约输入队列与分支" class="level1">
+<h1>第 18 章 会话并发：单写者、租约、输入队列与分支</h1>
+<section id="一个会话最好只有一个状态推进者" class="level2">
+<h2>一个会话最好只有一个状态推进者</h2>
+<p>同一会话的模型响应、工具完成、用户纠正、审批和后台通知可以同时到达。推荐把它们送进 Session Actor 的 mailbox，由一个顺序处理者更新有效历史。工具执行可以并行，状态接纳仍有序。这比给每次 <code>messages.append</code> 加锁更容易保持跨字段不变量。</p>
+<p>事件存储使用 expected version 防止其他进程误写。冲突时重新加载状态并判断命令是否仍适用，不是盲目重试同一个数据库 UPDATE。</p>
+</section>
+<section id="本地锁与分布式租约的区别" class="level2">
+<h2>本地锁与分布式租约的区别</h2>
+<p>单机单进程可用 actor 注册表，本地跨进程可用进程锁或数据库所有权。分布式部署使用有期限 lease，续租失败后旧 owner 停止派发。但仅有期限不够：旧进程暂停后恢复，可能不知道租约已被接管。</p>
+<p>为此每次接管增加 fencing token。执行器或状态存储拒绝小于当前 token 的写入。若外部服务不支持 fencing，则无法仅凭控制面租约完全阻止旧 worker 的副作用，应通过代理、隔离和幂等机制补充。</p>
+<p>参考程序用进程文件锁保证一个数据库一个活动 actor，只适用于本地文件系统，不是分布式 lease 实现。</p>
+</section>
+<section id="输入认领的持久队列" class="level2">
+<h2>输入认领的持久队列</h2>
+<pre class="text"><code>InboxItem {
+  input_id, kind: steer | follow_up | context,
+  payload_ref, accepted_at, claimed_by_step?, status
+}</code></pre>
+<p>steer 在当前工作下一个安全边界接纳，follow_up 等当前工作自然结束，context 可以不单独唤醒模型。不同语义不要压成一个字符串队列。Pi 低层明确区分 steering 与 follow-up；DeepSeek 有统一 inbox 与下一 step 接纳；Codex 还协调 mailbox 与活动回合。<a href="26-sources.html#evidence-p01">P01</a><a href="26-sources.html#evidence-d02">D02</a><a href="26-sources.html#evidence-c13">C13</a></p>
+<p>每次 drain 是一次认领，不应因准备前后都检查而多取输入。批量模式与一次一条模式都可行，但 API 与 UI 必须表达一致。</p>
+</section>
+<section id="取消与新输入如何排序" class="level2">
+<h2>取消与新输入如何排序</h2>
+<p>cancel 可以中止当前工作，steer 可以改变后续计划，两者不应自动等价。用户说“这次先停，换个方案”时，先记录停止当前 turn，再把新方案排入新 turn，避免旧工具结束后把结果接到新任务名下。</p>
+<p>工具如果声明 interrupt=block，新消息先排队；interrupt=cancel 可尽快停止，但仍要收集效果。界面应显示输入已经收到和什么时候生效，不把“已排队”显示成“当前模型已经知道”。</p>
+</section>
+<section id="分支历史与真实工作区不同步问题" class="level2">
+<h2>分支历史与真实工作区不同步问题</h2>
+<p>会话树通过 parent_id 选当前有效分支。回到旧分支只改变模型历史，不自动回滚磁盘。Pi 的会话结构提供分支依据，Codex 的历史重建也关注有效片段和回滚边界。<a href="26-sources.html#evidence-p05">P05</a><a href="26-sources.html#evidence-c09">C09</a></p>
+<p>切换分支后，重新读取当前工作区状态，把差异作为运行事实提供给模型。若产品提供代码回滚功能，单独执行版本控制动作并经过授权，不能把会话游标移动偷偷等同于 reset。</p>
+</section>
+<section id="ui-重连需要版本化快照" class="level2">
+<h2>UI 重连需要版本化快照</h2>
+<p>客户端携带 last_seq 订阅。若事件仍保留，发送后续；若游标过旧，返回 snapshot + snapshot_seq，再接后续事件。快照与后续读取必须避免间隙：在固定版本形成快照，之后从该序号继续，不按墙钟时间衔接。</p>
+<p>临时流 revision 只在特定 attempt 生命周期有效，进程重启后用持久事实重建，不能承诺临时字符游标继续有效。</p>
+</section>
+<section id="验收" class="level2">
+<h2>验收</h2>
+<p>两个进程同时打开会话应只有一个取得推进权；相同命令重复提交只认领一次；用户取消与工具完成竞态不能产生两个任务终态；旧审批不得批准新回合；断线重连能恢复 committed 状态；分支切换后不把旧代码当当前文件。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="17-recovery.html" rel="prev"><small>上一章</small>第 17 章 故障恢复：未知结果、幂等与重放政策</a><a href="19-extension.html" rel="next"><small>下一章</small>第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 3 章 领域模型：身份、版本与必须成立的不变量 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/03-domain.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="03-domain" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html" aria-current="page">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-3-章-领域模型身份版本与必须成立的不变量" class="level1">
+<h1>第 3 章 领域模型：身份、版本与必须成立的不变量</h1>
+<section id="给不同生命周期不同身份" class="level2">
+<h2>给不同生命周期不同身份</h2>
+<p>建议至少定义 <code>session_id</code>、<code>turn_id</code>、<code>step_id</code>、<code>attempt_id</code>、<code>call_id</code>、<code>artifact_id</code>。一次用户任务 turn 可以包含多个模型 step；一次逻辑 step 可以有多个网络 attempt；一次助手响应可以提出多个 call。身份不应从文本内容或数组下标临时猜测。</p>
+<pre class="text"><code>Session(version, active_turn, workspace_id)
+Turn(id, status, input_claims, budget, stop_reason)
+Step(id, request_revision, tool_plan_revision, attempts[])
+Attempt(id, stream_status, finish_reason, usage)
+ToolCall(id, step_id, ordinal, name, arguments, status)</code></pre>
+<p>恢复时保留逻辑 <code>call_id</code>；真实重新派发用新的 execution attempt 身份。否则一个调用经历两次尝试，会在日志里伪装成两个互不相关的动作。服务端 request id 是补充关联，不应替代本地身份。</p>
+</section>
+<section id="消息与事件不是同一种对象" class="level2">
+<h2>消息与事件不是同一种对象</h2>
+<p>事件记录发生过的事实，例如输入已认领、请求已冻结、工具已派发。消息是从这些事实投影出的模型对话。UI 进度也是投影，可以有短暂状态；不能反过来把 React 节点或终端输出当作会话格式。</p>
+<p>设计事件 envelope：</p>
+<pre class="text"><code>Event {
+  session_id, seq, event_id, schema_version,
+  kind, turn_id?, step_id?, call_id?,
+  payload, timestamp, causation_id?
+}</code></pre>
+<p><code>seq</code> 在会话内严格递增，负责重放顺序；时间戳供展示和分析，不用来修复乱序。跨机器时钟会漂移，同一毫秒也可能有多个事件。<code>causation_id</code> 指向触发原因，不应与去重键混为一谈。</p>
+</section>
+<section id="七条核心不变量" class="level2">
+<h2>七条核心不变量</h2>
+<ol type="1">
+<li>一份有效助手工具请求，每个 call 最终必须有可解释的结果或未知状态。</li>
+<li>未完成的工具参数不能进入派发阶段。</li>
+<li>执行使用的参数与权限必须对应批准的内容。</li>
+<li>同一会话的有效历史由一个有序写入者推进。</li>
+<li>提供给模型的历史必须能够由已记录事实和明确投影规则重建。</li>
+<li>已提交调用结果不能因普通重试被重复执行或悄悄覆盖。</li>
+<li>任务完成必须符合定义好的验证条件，不能只依据助手自述。</li>
+</ol>
+<p>不变量比类名更重要。不同代码语言可以采用不同类型结构，但必须能指出每条约束在哪里检查。</p>
+</section>
+<section id="工具结果如何表达部分成功" class="level2">
+<h2>工具结果如何表达部分成功</h2>
+<p>不要只返回 <code>success: bool</code>。建议：</p>
+<pre class="text"><code>ToolOutcome {
+  call_id, status: ok | error | cancelled | unknown,
+  content[], structured?, artifacts[],
+  effect: none | applied | possibly_applied,
+  error_code?, retry_hint?, evidence[]
+}</code></pre>
+<p>编辑成功但 diff 生成失败，可以有 <code>effect=applied</code> 与错误信息；远程响应丢失可以是 <code>status=unknown</code>。框架需要保留这类事实，模型也应收到具体恢复建议。一个字符串异常无法表达这些区别。</p>
+</section>
+<section id="版本需要绑定到决策" class="level2">
+<h2>版本需要绑定到决策</h2>
+<p>工具 schema、工作区策略、模型能力和上下文都可能变化。准备请求时固定它们的 revision，审批时记录相关版本，提交时检查会话 expected version。版本不一定全用递增整数：文件可以用内容哈希，schema 可用规范化表示的摘要，策略可以用持久配置版本。</p>
+<p>文件哈希表示你读到的内容，不代表工作区全部文件都没变化。若验证依赖多个文件，需要记录相应 read set 或工作树版本。精确说明版本覆盖范围，才能避免把局部一致误当作全局快照。</p>
+</section>
+<section id="参考实践与验收" class="level2">
+<h2>参考实践与验收</h2>
+<p>Codex 将工具运行绑定到步骤上下文；DeepSeek Harness 把 turn/step 与事件关联；Pi 用 parentId 表示有效分支；Claude Code 区分短暂 progress 与记录链。它们都说明身份与投影属于核心执行模型。<a href="26-sources.html#evidence-c06">C06</a><a href="26-sources.html#evidence-d08">D08</a><a href="26-sources.html#evidence-p05">P05</a><a href="26-sources.html#evidence-a10">A10</a></p>
+<p>验收时构造重复 call id、不同参数的相同 id、失配的审批版本和重复事件提交。系统必须明确拒绝或幂等处理，不能依赖“模型一般不会这样输出”。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="02-architecture.html" rel="prev"><small>上一章</small>第 2 章 总体架构：控制面、执行面与事实存储</a><a href="04-loop.html" rel="next"><small>下一章</small>第 4 章 执行内核：输入认领、模型步与停止条件</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>

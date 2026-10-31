@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="color-scheme" content="light dark"><title>第 9 章 文件系统工具：路径约束与乐观并发修改 · AI Coding Agent 设计与实现</title>
+<link rel="canonical" href="https://aias00.github.io/coding-agent-book/09-filesystem.html"><link rel="stylesheet" href="assets/reader.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
+<body data-chapter="09-filesystem" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
+<a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
+<div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html" aria-current="page">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<main id="main" tabindex="-1"><article><section id="第-9-章-文件系统工具路径约束与乐观并发修改" class="level1">
+<h1>第 9 章 文件系统工具：路径约束与乐观并发修改</h1>
+<section id="读取工具必须返回可用于修改的版本" class="level2">
+<h2>读取工具必须返回可用于修改的版本</h2>
+<p>建议读取结果包含 <code>path</code>、内容或选定行段、内容哈希、编码、是否截断、可继续读取的范围和工作区身份。只返回正文，下一次编辑就无法说明“基于哪一版文件”。行号用于展示，内容版本用于前置条件，两者不能互相替代。</p>
+<p>对大文件按字节和行数同时限量；UTF-8 在切片边界要正确解码。二进制先识别，再返回元数据或受控产物，不把任意字节强行当作文本。读取 secret、忽略目录和控制面存储也需独立策略，不能认为工作区内全部文件都适合发送给模型。</p>
+</section>
+<section id="路径规范化只能解决一部分问题" class="level2">
+<h2>路径规范化只能解决一部分问题</h2>
+<p>输入应明确是工作区相对路径还是已批准绝对路径。拒绝词法逃逸后，还要处理符号链接、真实父目录、大小写与路径别名。检查完成后，攻击者仍可能替换目录项，这叫检查与使用之间的竞态。应用级 <code>resolve()</code> 不能提供完整隔离。</p>
+<p>可信单进程工具可采用拒绝符号链接并检查父链的保守方案；不可信仓库或多租户系统应让执行世界提供真实文件访问限制。Linux 等平台可考虑目录句柄和受限路径打开 API，具体实现按平台验证；不要把字符串前缀比较当作安全根。</p>
+</section>
+<section id="精确编辑的前置条件" class="level2">
+<h2>精确编辑的前置条件</h2>
+<pre class="text"><code>EditRequest {
+  path, expected_content_hash,
+  replacements[{old_text, new_text}], encoding
+}</code></pre>
+<p>取得同文件锁后重新读取。先比较哈希，再检查每个 old_text 在原文件里唯一存在，替换区域互不重叠；按位置从后向前生成新内容，或一次性重建。每项都针对同一份原文，不能让第二个 old_text 匹配第一项修改后的新内容。Pi 的编辑工具与文件变更队列可参考。<a href="26-sources.html#evidence-p07">P07</a><a href="26-sources.html#evidence-p08">P08</a></p>
+<p>若哈希变化，返回 PRECONDITION_CHANGED，附当前版本信息并要求重新读取。不要自动模糊匹配并应用一个“差不多”的 patch。模糊匹配可以作为人工辅助模式，但不应默认获得与精确条件相同的安全承诺。</p>
+</section>
+<section id="为什么检查哈希还要加锁" class="level2">
+<h2>为什么检查哈希还要加锁</h2>
+<p>两个进程都读到 H0，都通过比较，然后分别写 H1 和 H2，仍然会覆盖。进程内锁防止同一执行器里的并发工具冲突；跨进程需要共享锁、文件系统原子能力或版本化工作区。哈希校验是乐观并发前置条件，本身不是操作系统级 compare-and-swap。</p>
+<p>如果不能控制外部编辑器，至少在临近替换时再读并比较，并将仍然存在的竞态明确列出。不要声称两次哈希检查已经实现不可绕过的事务。</p>
+</section>
+<section id="临时文件与原子替换" class="level2">
+<h2>临时文件与原子替换</h2>
+<p>推荐在同目录创建临时文件，写完整内容，flush/fsync，保留必要权限，再原子替换目标。需要断电持久性时还应处理目录项同步。临时文件同目录有助于避免跨文件系统 rename 失败。</p>
+<p>原子替换保证观察者通常看到旧文件或新文件，而不是半截文件；它不保证多文件一起替换，也不自动保留 ACL、扩展属性、硬链接关系或所有平台语义。对配置文件、可执行脚本等对象，应显式决定哪些元数据必须保留。</p>
+</section>
+<section id="多文件修改怎样交付" class="level2">
+<h2>多文件修改怎样交付</h2>
+<p>可以先在隔离工作树应用全部 patch，运行验证后展示 diff，再由受控步骤接入用户工作区。若必须直接修改，应先检查所有前置条件，再按计划写入；失败后返回逐文件状态，不把部分成功简化成一个 false。</p>
+<p>自动回滚也有条件：只有文件仍等于本工具刚写入的版本时才可回滚，否则可能覆盖用户后来编辑。备份不是无条件恢复许可证，回滚同样需要版本检查。</p>
+</section>
+<section id="不要意外覆盖用户已有改动" class="level2">
+<h2>不要意外覆盖用户已有改动</h2>
+<p>任务开始记录 Git 状态或文件版本，但不要为了“清理环境”运行 destructive reset。修改前重新核对目标，结果报告说明哪些文件是本次新增改动，哪些原本就有未提交内容。提交工具应显式 stage 本任务路径，不能把工作区所有文件都加入提交。</p>
+</section>
+<section id="验收矩阵" class="level2">
+<h2>验收矩阵</h2>
+<p>正常唯一替换、旧文本多处命中、重叠替换、读取后用户修改、两个路径指向同一文件、符号链接逃逸、编码错误、写满磁盘、rename 失败、修改后结果提交失败，都需要独立场景。最后一种会把控制流连接到第 17 章的未知结果恢复，而非简单再次应用 patch。</p>
+</section>
+</section>
+</article><nav class="pager" aria-label="章节翻页"><a href="08-scheduling.html" rel="prev"><small>上一章</small>第 8 章 调度设计：有界并发、独占屏障与稳定历史</a><a href="10-terminal.html" rel="next"><small>下一章</small>第 10 章 命令执行：进程树、输出游标与后台任务</a></nav><footer class="colophon">Aias00 · AI 辅助研究与编写 · <a href="notice.html">出处与许可</a> · <a href="validation.json">构建检查</a></footer></main>
+<div class="reading-progress" role="progressbar" aria-label="本章阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+<dialog id="search-dialog" aria-labelledby="search-label"><form method="dialog"><button class="close" aria-label="关闭搜索">关闭</button></form><h2 id="search-label">搜索全书</h2><label for="search-input">关键词</label><input id="search-input" type="search" placeholder="例如：并发、恢复、StepContext" autocomplete="off"><p id="search-status" role="status"></p><ol id="search-results"></ol></dialog>
+</body></html>
