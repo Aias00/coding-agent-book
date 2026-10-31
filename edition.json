@@ -1,7 +1,7 @@
 {
   "title": "AI Coding Agent 设计与实现",
   "subtitle": "架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考",
-  "edition": "2.0.0",
+  "edition": "2.1.0",
   "date": "2026-10-30",
   "main_chapters": 24,
   "reference_tests": 18,

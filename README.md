@@ -2,9 +2,16 @@
 
 架构、核心机制与关键工程细节。以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考，从零设计一套能够读代码、改文件、运行验证和处理中断的 Coding Agent。
 
-[在线阅读](https://aias00.github.io/coding-agent-book/) · [第二版 EPUB](https://github.com/Aias00/coding-agent-book/releases/download/v2.0.0/coding-agent-engineering.epub) · [完整书稿](book.md) · [第一版归档](https://github.com/Aias00/coding-agent-book/releases/tag/v1.0.0)
+[在线阅读](https://aias00.github.io/coding-agent-book/) · [增订版 EPUB](https://github.com/Aias00/coding-agent-book/releases/download/v2.1.0/coding-agent-engineering.epub) · [完整书稿](book.md) · [第一版归档](https://github.com/Aias00/coding-agent-book/releases/tag/v1.0.0)
 
-**第二版按设计问题全面重写**：24 章主体、序言与 3 篇附录，包含接口、状态机、数据结构、算法、调用时序、失败恢复和方案取舍。四个项目的 68 项源码快照作为机制依据穿插正文。
+**第二版按设计问题全面重写**：24 章主体、序言与 3 篇附录，包含接口、状态机、数据结构、算法、调用时序、失败恢复和方案取舍。四个项目的 85 项源码证据作为机制依据穿插正文。
+
+**2.1.0 增订**补充任务业务流程、模型实际看到的工具声明、Skill 渐进加载、MCP 发现与调用，以及四套上下文压缩实现的详细比较。新增内容先标注源码事实，再给分析判断和设计建议；不把客户端无法确认的服务端机制写成事实。
+
+- [第 4 章：任务业务流程与执行循环](chapters/04-loop.md)
+- [第 7 章：注册、暴露与调用](chapters/07-tool-contract.md)
+- [第 15 章：四份压缩源码与方案取舍](chapters/15-compaction.md)
+- [第 19 章：Skill 与 MCP 的实际接入](chapters/19-extension.md)
 
 ## 关键细节
 
@@ -73,7 +80,7 @@ node --check web/reader.js
 | Codex | `57d4fac64adbcaed0523ca6bf8d58c4ef6875157` |
 | DeepSeek Harness | `687f282e8625c6b8d11ff58211a90524be2e4317` |
 | Pi | `16f5f0af4d85ca583d045ceb5ed6d646fcaf7761` |
-| Claude Code | 本地 2.1.88 发布包；引用的 13 个提取实现文件与 source map 嵌入文本对照 |
+| Claude Code | 本地 2.1.88 发布包；引用的 14 个提取实现文件与 source map 嵌入文本对照 |
 
 研究日期 2026-10-30。完整路径、哈希和固定提交链接见[附录 B](chapters/26-sources.md)。不上传 Claude Code 原始发布包、source map 或提取源码。
 

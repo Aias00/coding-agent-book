@@ -25,6 +25,11 @@ FILES = {
         ('C14', 'codex-rs/core/src/session/multi_agents.rs', ''),
         ('C15', 'codex-rs/app-server/README.md', ''),
         ('C16', 'LICENSE', 'Apache License'),
+        ('C17', 'codex-rs/core/src/compact_remote_v2.rs', 'fn build_v2_compacted_history'),
+        ('C18', 'codex-rs/core/src/compact_remote_v2_installation.rs', 'candidate.model_info.slug'),
+        ('C19', 'codex-rs/core/src/compact_token_budget.rs', 'sess.start_new_context_window'),
+        ('C20', 'codex-rs/core/src/session/async_compaction.rs', 'candidate.prefix.generation'),
+        ('C21', 'codex-rs/protocol/src/models.rs', '    Compaction {'),
     ],
     'deepseek-harness': [
         ('D01', 'docs/architecture.md', '## Turn flow'),
@@ -45,6 +50,15 @@ FILES = {
         ('D16', 'docs/cordis-primer.md', ''),
         ('D17', 'LICENSE', ''),
         ('D18', 'packages/llm/llm-pi-ai/README.md', ''),
+        ('D19', 'packages/compaction/compaction-basic/src/index.ts', 'class BasicCompactionEngine'),
+        ('D20', 'packages/compaction/compaction-basic/src/config.ts', 'function resolveCompactSpec'),
+        ('D21', 'packages/compaction/compaction-basic/src/region.ts', 'function selectCompactableRange'),
+        ('D22', 'packages/compaction/compaction-basic/src/summarizer.ts', 'function summarizeWithLlm'),
+        ('D23', 'packages/skill/tool-skill/src/index.ts', ''),
+        ('D24', 'packages/skill/skill/src/index.ts', 'class SkillRegistry'),
+        ('D25', 'packages/mcp/mcp-client/src/index.ts', 'async function apply'),
+        ('D26', 'packages/mcp/mcp-client/README.md', ''),
+        ('D27', 'packages/mcp/mcp-client/src/tools.ts', 'async function syncTools'),
     ],
     'pi': [
         ('P01', 'packages/agent/src/agent-loop.ts', 'async function runLoop'),
@@ -65,6 +79,8 @@ FILES = {
         ('P16', 'LICENSE', ''),
         ('P17', 'packages/coding-agent/src/core/tools/bash.ts', ''),
         ('P18', 'packages/coding-agent/src/modes/rpc/rpc-mode.ts', ''),
+        ('P19', 'packages/coding-agent/src/core/skills.ts', 'function formatSkillsForPrompt'),
+        ('P20', 'packages/coding-agent/src/core/mcp-servers.ts', 'export type McpExposure'),
     ],
     'ccsource': [
         ('A01', 'package/package.json', '"version"'),
@@ -83,6 +99,7 @@ FILES = {
         ('A14', 'package/src-extracted/src/hooks/useCanUseTool.tsx', ''),
         ('A15', 'package/LICENSE.md', ''),
         ('A16', 'package/src-extracted/src/utils/sessionRestore.ts', ''),
+        ('A17', 'package/src-extracted/src/services/compact/timeBasedMCConfig.ts', 'const TIME_BASED_MC_CONFIG_DEFAULTS'),
     ],
 }
 
@@ -94,10 +111,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source-root', type=Path, default=Path('/Volumes/data'))
     args = parser.parse_args()
-    result = {'edition': '1.0.0', 'review_date': '2026-10-30', 'projects': {}, 'files': []}
+    edition = json.loads((ROOT / 'edition.json').read_text())['edition']
+    previous = json.loads((ROOT / 'research/sources.json').read_text())
+    result = {'edition': edition, 'review_date': '2026-10-30', 'projects': {}, 'files': []}
     for name, files in FILES.items():
         directory = args.source_root / name
         commit = git(directory, 'rev-parse', 'HEAD')
+        if commit != previous['projects'].get(name, {}).get('commit'):
+            raise ValueError(f'Source snapshot changed for {name}; review before updating book evidence')
         remote = git(directory, 'remote', 'get-url', 'origin')
         result['projects'][name] = {'commit': commit, 'remote': remote,
             'working_tree_status': git(directory, 'status', '--porcelain') if commit else None}

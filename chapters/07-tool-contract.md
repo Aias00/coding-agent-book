@@ -1,5 +1,43 @@
 # 第 7 章 工具协议：声明、校验、授权与结果终结
 
+## 模型看见声明，运行时保留实现
+
+源码事实：Codex 的 `ToolRouter` 同时持有注册表、模型可见 specs、tool mode 和 code mode 名称映射。Pi 的 agent-core 则在请求边界通过 `declareToolChanges()` 对比可执行工具与 transcript 已声明集合，记录新增和移除。两种方式都在处理同一个关系：模型收到的使用说明，应与运行时实际能解释的工具一致。〔C03〕〔C11〕〔P01〕
+
+模型侧通常接收名称、描述与参数 schema；handler、连接、凭据与执行上下文由宿主保存。下面是本书的概念示例，字段不是某一家模型 API 的完整请求格式：
+
+```json
+{
+  "name": "read_file",
+  "description": "读取工作区中的文本文件",
+  "inputSchema": {
+    "type": "object",
+    "properties": { "path": { "type": "string" } },
+    "required": ["path"],
+    "additionalProperties": false
+  }
+}
+```
+
+模型据此提出 `read_file({path: "src/main.ts"})`。真正读取文件的是宿主根据名称查到的 handler。调用必须携带可关联身份，结果用相同身份回到模型历史，供下一次生成使用。模型输出一段看起来像调用的普通文本，不应被当作已经执行；实际入口由 adapter 的结构化响应解析与工具路由确定。
+
+## 已安装、会话可用与本轮暴露分开管理
+
+本书建议区分三份集合：已安装能力、当前会话允许的能力、本次请求实际声明的能力。筛选涉及身份、scope、执行环境、模型支持和任务策略。集合的变化应形成新的工具计划，不能仅修改一段提示词就假定执行限制也改变。
+
+源码事实：Pi 的 `McpExposure` 定义四种暴露模式，含义如下。配置层在这里保存定义，连接与实际接入由相应扩展负责；不能把这个配置文件当作完整 MCP 执行实现。〔P20〕
+
+| 模式 | 模型与运行时的关系 |
+|---|---|
+| direct | 工具作为普通工具声明，code mode 也可使用 |
+| deferred | 先通过 tool_search 加载，再允许模型直接调用 |
+| codemode | 通过程序入口调用，脚本可用 searchTools 查找；不直接声明每个工具 |
+| hidden | 已登记但不可达 |
+
+Codex 的 `spec_plan` 也区分 direct、deferred、code-mode-only 与 hidden 等 exposure，并结合模型搜索能力和配置决定最终暴露。具体枚举和组合与 Pi 不完全相同，不能认为这些名称构成通用标准。〔C11〕
+
+延迟发现的收益是减少每次请求携带的 schema；代价是额外搜索往返，以及“已发现”“已声明”“当前可执行”三个状态必须保持一致。隐藏工具还需要执行入口实际拒绝，不能只期望模型忘记工具名称。
+
 ## ToolDefinition 应该包含哪些字段
 
 ```text

@@ -13,7 +13,7 @@
 
 ## 材料与验证方法
 
-研究脚本记录 68 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
+研究脚本记录 85 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
 
 这些快照作为设计方案的参考依据。可运行参考内核和故障实验见第 23 章；完整方案包含明确标注的扩展设计。未构建四个上游项目或执行统一真实模型评测。
 
@@ -128,6 +128,41 @@
 - 定位：第 1 行，`Apache License`；文件共 201 行。
 - SHA-256：`d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc`
 - [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/LICENSE#L1)
+
+## C17 · codex {#evidence-c17}
+
+- 相对路径：`codex/codex-rs/core/src/compact_remote_v2.rs`
+- 定位：第 480 行，`fn build_v2_compacted_history`；文件共 1353 行。
+- SHA-256：`cb81ae523a2d3674ffe0acd12a492431d773e1148a420bbd99850b9081277673`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_remote_v2.rs#L480)
+
+## C18 · codex {#evidence-c18}
+
+- 相对路径：`codex/codex-rs/core/src/compact_remote_v2_installation.rs`
+- 定位：第 86 行，`candidate.model_info.slug`；文件共 299 行。
+- SHA-256：`51bc95908de2153856836f931b25deed831c5e2c3ab13a3dc35231da3a0ae0be`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_remote_v2_installation.rs#L86)
+
+## C19 · codex {#evidence-c19}
+
+- 相对路径：`codex/codex-rs/core/src/compact_token_budget.rs`
+- 定位：第 58 行，`sess.start_new_context_window`；文件共 69 行。
+- SHA-256：`49682d338de201896ee122e36b16dc62072ce791c4acea52c7c0a6b615e6e20f`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_token_budget.rs#L58)
+
+## C20 · codex {#evidence-c20}
+
+- 相对路径：`codex/codex-rs/core/src/session/async_compaction.rs`
+- 定位：第 162 行，`candidate.prefix.generation`；文件共 222 行。
+- SHA-256：`275a1ea41773da9644e9f03d41548fed92cf4ad8891a0b4fcd61675ff64ef909`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/async_compaction.rs#L162)
+
+## C21 · codex {#evidence-c21}
+
+- 相对路径：`codex/codex-rs/protocol/src/models.rs`
+- 定位：第 1296 行，`    Compaction {`；文件共 4757 行。
+- SHA-256：`753498bc730ba21ded710d9aa2b2f9163e6bbe4eaa18f1c25d998c36138a54f7`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/protocol/src/models.rs#L1296)
 
 ## D01 · deepseek-harness {#evidence-d01}
 
@@ -255,6 +290,69 @@
 - SHA-256：`da63b3f79622bcb69ebafc345b04c4b930a5bd871c2cb13d1adcacf7afe3aa5e`
 - [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-pi-ai/README.md#L1)
 
+## D19 · deepseek-harness {#evidence-d19}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/index.ts`
+- 定位：第 113 行，`class BasicCompactionEngine`；文件共 452 行。
+- SHA-256：`c298756c1d06a24593dc573e08f337f7f012675bcfaa675edb7d5368b19649f6`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/index.ts#L113)
+
+## D20 · deepseek-harness {#evidence-d20}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/config.ts`
+- 定位：第 153 行，`function resolveCompactSpec`；文件共 362 行。
+- SHA-256：`4972edc6447dcff87eab54c3a9c5984171238aa06aa0eb34ffde4bfac4ce1275`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/config.ts#L153)
+
+## D21 · deepseek-harness {#evidence-d21}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/region.ts`
+- 定位：第 117 行，`function selectCompactableRange`；文件共 600 行。
+- SHA-256：`295b53cc9e924f7cb2e843e0d0d296e89ead73da2aab9790282db30736e2e063`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/region.ts#L117)
+
+## D22 · deepseek-harness {#evidence-d22}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/summarizer.ts`
+- 定位：第 120 行，`function summarizeWithLlm`；文件共 221 行。
+- SHA-256：`03ef6eb0b6a011530829820e30ff709c2c1b34cfa37a98c19c0037432b9d2f55`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/summarizer.ts#L120)
+
+## D23 · deepseek-harness {#evidence-d23}
+
+- 相对路径：`deepseek-harness/packages/skill/tool-skill/src/index.ts`
+- 定位：第 1 行，`file`；文件共 433 行。
+- SHA-256：`29f6cf10c7247379298d9a96a53aef9cb2b21dcf7266f57ab147860b27d7cc44`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/skill/tool-skill/src/index.ts#L1)
+
+## D24 · deepseek-harness {#evidence-d24}
+
+- 相对路径：`deepseek-harness/packages/skill/skill/src/index.ts`
+- 定位：第 356 行，`class SkillRegistry`；文件共 868 行。
+- SHA-256：`af4fad67fb086c3f5c93aed4604830718b4535e7e59a60d680404b07ea08477c`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/skill/skill/src/index.ts#L356)
+
+## D25 · deepseek-harness {#evidence-d25}
+
+- 相对路径：`deepseek-harness/packages/mcp/mcp-client/src/index.ts`
+- 定位：第 154 行，`async function apply`；文件共 203 行。
+- SHA-256：`f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/index.ts#L154)
+
+## D26 · deepseek-harness {#evidence-d26}
+
+- 相对路径：`deepseek-harness/packages/mcp/mcp-client/README.md`
+- 定位：第 1 行，`file`；文件共 229 行。
+- SHA-256：`346ad21f0c7f8bd7248a021513228769fcde1dec7065a3ea77e809f999805806`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/README.md#L1)
+
+## D27 · deepseek-harness {#evidence-d27}
+
+- 相对路径：`deepseek-harness/packages/mcp/mcp-client/src/tools.ts`
+- 定位：第 113 行，`async function syncTools`；文件共 511 行。
+- SHA-256：`59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/tools.ts#L113)
+
 ## P01 · pi {#evidence-p01}
 
 - 相对路径：`pi/packages/agent/src/agent-loop.ts`
@@ -381,6 +479,20 @@
 - SHA-256：`d534e0fa1484844a097963d5f4fb4df9397c5a1b5e29e42aed7575ab6f67989b`
 - [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/modes/rpc/rpc-mode.ts#L1)
 
+## P19 · pi {#evidence-p19}
+
+- 相对路径：`pi/packages/coding-agent/src/core/skills.ts`
+- 定位：第 358 行，`function formatSkillsForPrompt`；文件共 514 行。
+- SHA-256：`8dcc644dbabbb34238f609ecf191c0da370d74873ccaccaf3c3cd0e7703d9431`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/skills.ts#L358)
+
+## P20 · pi {#evidence-p20}
+
+- 相对路径：`pi/packages/coding-agent/src/core/mcp-servers.ts`
+- 定位：第 52 行，`export type McpExposure`；文件共 346 行。
+- SHA-256：`0aaad23b26f31f743bdd117754f4c871ea821279bf68f8ba5d71eccbb1602c6a`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/mcp-servers.ts#L52)
+
 ## A01 · ccsource {#evidence-a01}
 
 - 相对路径：`ccsource/package/package.json`
@@ -488,6 +600,13 @@
 - 相对路径：`ccsource/package/src-extracted/src/utils/sessionRestore.ts`
 - 定位：第 1 行，`file`；文件共 551 行。
 - SHA-256：`9dfe9c2203aac5c3cc6d49e45bf2f8fd381582781b5cec3abbc4ceb6d219e177`
+- 本地提取文本与发布包 source map 嵌入文本一致。
+
+## A17 · ccsource {#evidence-a17}
+
+- 相对路径：`ccsource/package/src-extracted/src/services/compact/timeBasedMCConfig.ts`
+- 定位：第 30 行，`const TIME_BASED_MC_CONFIG_DEFAULTS`；文件共 43 行。
+- SHA-256：`aede0336973766a4ae25d2625156d3f9300736896ed4691b566e1c98472fd6f9`
 - 本地提取文本与发布包 source map 嵌入文本一致。
 
 ## 官方补充资料

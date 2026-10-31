@@ -1,17 +1,71 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 85 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>第 19 章 扩展机制：依赖注入、生命周期与协议版本 · AI Coding Agent 设计与实现</title>
 <link rel="canonical" href="https://aias00.github.io/coding-agent-book/19-extension.html"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="19-extension" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="19-extension" data-edition="2.1.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
 <a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
-<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html" aria-current="page">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：四份源码的实现、边界与取舍</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html" aria-current="page">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.1.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
 <main id="main" tabindex="-1"><article><section id="第-19-章-扩展机制依赖注入生命周期与协议版本" class="level1">
 <h1>第 19 章 扩展机制：依赖注入、生命周期与协议版本</h1>
+<section id="toolskill-与-mcp-的分工" class="level2">
+<h2>Tool、Skill 与 MCP 的分工</h2>
+<p>本节先依据源码区分三类对象，再解释它们怎样协作。Tool 是可执行接口；Skill 是任务方法及配套资源；MCP 是把外部服务能力接入宿主的协议。它们可以组合，但不需要把一个 Skill 直接注册成同名可执行函数，也不能认为连接 MCP 就等于把服务全部内容直接发送给模型。</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>对象</th>
+<th>宿主管理什么</th>
+<th>模型通常接触什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tool</td>
+<td>定义、运行时、版本、执行上下文与策略</td>
+<td>名称、说明、参数 schema，以及调用结果</td>
+</tr>
+<tr>
+<td>Skill</td>
+<td>名称、适用说明、正文、脚本、引用资源、来源与可见性</td>
+<td>先接触目录，激活后读取具体指令</td>
+</tr>
+<tr>
+<td>MCP server</td>
+<td>配置、连接、认证、能力同步、调用与清理</td>
+<td>经宿主转换和筛选后的工具或资源入口</td>
+</tr>
+</tbody>
+</table>
+<p>上表是跨项目的职责归纳。各项目的真实暴露位置与加载机制，以下分别注明。</p>
+</section>
+<section id="pi-的-skill目录进入提示正文通过读取加载" class="level2">
+<h2>Pi 的 Skill：目录进入提示，正文通过读取加载</h2>
+<p>源码事实：<code>loadSkills()</code> 和目录扫描逻辑查找 SKILL.md，解析名称、description 与调用控制。<code>formatSkillsForPrompt()</code> 先过滤 disableModelInvocation，再生成 <code>&lt;available_skills&gt;</code>，其中包含 name、description 和 location。目录向模型说明何时读取 Skill 文件，相关相对资源按 Skill 所在目录解析。<a href="26-sources.html#evidence-p19">P19</a></p>
+<pre class="text"><code>发现 Skill → 解析元数据 → 过滤模型可调用项
+→ 将名称、简介、位置放入提示
+→ 模型按需通过 read、bash 或间接入口加载正文
+→ 依据正文调用真实工具</code></pre>
+<p>这里是渐进加载：目录让模型知道有哪些方法，正文提供具体操作。Pi 这段函数还根据可用读取入口改变指引文字；不能把它描述成所有情况下都存在一个 load_skill 函数。模型禁用项可以有显式用户入口，具体指令形式由该宿主定义，不能把不同项目的斜杠命令混为统一协议。<a href="26-sources.html#evidence-p19">P19</a></p>
+<p>设计判断：这种方式容易接入已有文件工具，减少新接口；但宿主必须保证正文位置可访问、来源可信，并使活跃指令在压缩后仍可恢复。只列简介而没有可用加载入口，不能形成完整 Skill 能力。</p>
+</section>
+<section id="deepseek-harness-的-skill注册表目录和-loader-分开" class="level2">
+<h2>DeepSeek Harness 的 Skill：注册表、目录和 loader 分开</h2>
+<p>源码事实：<code>SkillRegistry</code> 合并 provider 与运行时贡献，按 scope 和来源规则提供 list、snapshot、get。读取来源由 provider 决定，注册表本身不等于文件扫描器。<code>tool-skill</code> 再把目录与加载入口提供给模型。<a href="26-sources.html#evidence-d24">D24</a><a href="26-sources.html#evidence-d23">D23</a></p>
+<p>模型激活路径通过 <code>skill</code> 工具加载正文，使用 <code>renderSkillContent()</code> 返回一致指令形式，结果进入普通工具历史。用户显式激活则从已认领的用户消息中识别 <code>/name</code>，检查 user-invocable，再把相同渲染形式作为指令上下文加入 step。未知或用户禁用名称留作普通文本，不自动执行。<a href="26-sources.html#evidence-d23">D23</a></p>
+<p>这份目录不是固定在 system prompt 的静态字符串：<code>agent/pre-step</code> 检查当前 agent 是否真能看见该插件注册的那个 skill 工具，再取得完整 snapshot、过滤 model-invocable 项、计算目录摘要，与已发布目录比较。目录变化时发布替换目录；曾发布后变为空，也会发布空目录，明确退休旧名称。provider snapshot 不完整则保留上次可靠视图，不用临时缺失抹掉目录。<a href="26-sources.html#evidence-d23">D23</a></p>
+<p>一个细节很重要：工具可见性比较的是定义身份，而不仅是名字。另一个 scope 注册同名 skill 工具时，不应自动继承原插件的目录和加载语义。目录消息的角色、来源与记录方式都由实现确定；不能把 Skill 目录一概说成 system 指令。<a href="26-sources.html#evidence-d23">D23</a></p>
+<p>设计判断：把 provider、registry、目录呈现和正文 loader 分开，有利于本地、远程和按 agent 配置组合，但增加了目录一致性与生命周期成本。Skill 里的脚本仍需要执行工具，Skill 提到某个 MCP 能力也不自动为它授权。</p>
+</section>
 <section id="扩展点按责任定义" class="level2">
 <h2>扩展点按责任定义</h2>
 <p>常见扩展包括模型 provider、工具、上下文贡献、执行器、存储 provider 和 UI renderer。不要用一个任意修改全局对象的 callback 承载所有功能。每类扩展声明输入、输出、顺序、是否可短路、错误归属与资源释放方式。</p>
@@ -44,8 +98,33 @@
 </section>
 <section id="mcp-接入的实际工作" class="level2">
 <h2>MCP 接入的实际工作</h2>
-<p>MCP 工具接入仍要管理 server 生命周期、连接 readiness、schema 变化、认证、超时和名称冲突。远端工具声明的只读或并发提示不能自动成为宿主强安全保证；部署方需要自己的信任与权限规则。</p>
-<p>规范化远端名称后保留 server/tool 原始身份，授权与审计使用实际目标。server 重连后 schema revision 变化，下一请求更新工具计划；进行中的旧调用按原版本结算。</p>
+<p>源码事实：DeepSeek 的 <code>mcp-client.apply()</code> 先校验连接配置和服务命名空间，建立 connection supervisor，再等待初始连接与工具发现。supervisor 管理连接代际、重连、活动工具注册与卸载清理。<code>failOnStartupError</code> 会影响初始失败处理，因此“配置存在”“服务已连上”“工具已注册”是不同状态。<a href="26-sources.html#evidence-d25">D25</a><a href="26-sources.html#evidence-d26">D26</a></p>
+<p><code>syncTools()</code> 将服务端工具转换为普通 ToolDefinition：description 和 inputSchema 进入宿主定义，execute 路径最终使用 client.callTool。模型调用仍经过普通 ToolRuntime，而不是绕过宿主直接控制服务器。<a href="26-sources.html#evidence-d27">D27</a></p>
+<pre class="text"><code>client.listTools()
+→ 构建下一代 ToolDefinition
+→ ctx.tools.register(definition)
+→ 本轮工具计划筛选与暴露
+→ 模型提出调用
+→ 宿主校验、策略与调度
+→ client.callTool({name: rawName, arguments: args})
+→ 结果归一化并进入历史</code></pre>
+<p>这是一条依据实现整理的时序，省略协议协商、网络认证等传输字段，不能直接当作完整 MCP wire request。MCP 还可以提供资源，宿主是否暴露读取入口、怎样将内容纳入上下文，是另一层适配；DeepSeek 的这份桥接文档明确说明其能力和不支持项，不能把协议所有特性都归给一个插件。<a href="26-sources.html#evidence-d26">D26</a></p>
+<section id="公开名称与原始名称不能混淆" class="level3">
+<h3>公开名称与原始名称不能混淆</h3>
+<p><code>publicToolName()</code> 根据本地配置的 serverName 与 rawName 形成模型名称，常见形式为 <code>mcp__github__get_issue</code>。该实现还处理目标模型的字符与 64 字符限制；发生有损规范化或截断时附加身份摘要，降低名称碰撞风险，重复定义仍由同步逻辑检查。这个公开命名策略属于宿主，不是 MCP 强制格式。<a href="26-sources.html#evidence-d27">D27</a></p>
+<p>真正调用远端时，代码保存并使用原始 tool.name。它不从公开名称按下划线反向拆出 rawName，这避免名称规范化后错误路由。</p>
+</section>
+<section id="工具同步失败的两个阶段" class="level3">
+<h3>工具同步失败的两个阶段</h3>
+<p><code>syncTools()</code> 先获取完整列表并构建下一代，再切换注册。发现失败或列表重复发生在第一阶段，旧代保持不动；进入第二阶段后先撤销旧代，再注册新代。若新注册与其他贡献冲突，会撤销已注册的部分，最终该服务不留下半套工具，可能变为零项或抛出错误，取决于调用配置。不能笼统声称所有同步失败都保留旧代。<a href="26-sources.html#evidence-d27">D27</a></p>
+<p>源码还分别处理取消信号、调用超时和 MCP 错误结果；模型收到失败，不伪装成功。结果中的文本、结构化值和图片等需要适配与策略处理，不能仅把返回对象随意转成字符串。要求 task-based execution 的工具在此桥接不支持时会明确拒绝。<a href="26-sources.html#evidence-d27">D27</a></p>
+<p>设计判断：统一 ToolRuntime 能复用校验与策略，明确命名空间有利于权限和审计。远端声明不应自动成为强授权依据；重连后 schema 或目标变化，需要让后续工具计划和授权同步更新。这个约束属于自建系统的设计要求，不能仅凭成功 listTools 就认为已经满足。</p>
+</section>
+</section>
+<section id="三者协作处理一个-github-issue" class="level2">
+<h2>三者协作：处理一个 GitHub Issue</h2>
+<p>下面是基于前述能力的组合示例，不代表某个项目存在同名内置 Skill：用户要求修复一个 Issue；模型从目录选择适用 Skill，加载调查与验证方法；经 MCP 工具读取 Issue；经本地文件工具调查、编辑；经验证工具取得结果；最后按 Skill 的要求报告。</p>
+<p>Skill 决定方法，Tool 提供行动接口，MCP 把一部分行动接到外部服务。所有真实行动仍由运行时接纳和执行。完整定义、当前会话允许项、本轮可见项、已加载 Skill 内容与外部连接状态应分别管理；压缩后怎样恢复它们，见第 15 章的 Claude Code 路径。</p>
 </section>
 <section id="code-mode-不应该绕过底层工具" class="level2">
 <h2>Code mode 不应该绕过底层工具</h2>

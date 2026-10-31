@@ -1,14 +1,14 @@
 {
   "structural_checks": "passed",
-  "epub_sha256": "c42ae12acfe974c6c74f03b81ef385642f93a076c5cd5e68c32713d18df9f8ca",
+  "epub_sha256": "10d91f37b0e63a79d0156828455b6b7f22c762c8de049b5f9884a281271202d4",
   "chapter_documents": 28,
   "html_pages": 55,
-  "html_internal_links_checked": 2297,
+  "html_internal_links_checked": 2377,
   "epub_resources": 43,
   "epub_spine_items": 31,
-  "epub_internal_links_checked": 801,
-  "source_records": 68,
-  "source_ids_cited": 47,
-  "extracted_implementation_files_matched_to_map": 13,
+  "epub_internal_links_checked": 931,
+  "source_records": 85,
+  "source_ids_cited": 66,
+  "extracted_implementation_files_matched_to_map": 14,
   "scope": "Publication structure and internal references; upstream execution and real-model performance are not tested."
 }

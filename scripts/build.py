@@ -15,6 +15,7 @@ CONFIG = json.loads((ROOT / 'edition.json').read_text())
 TITLE = CONFIG['title']
 SUBTITLE = CONFIG['subtitle']
 EDITION = CONFIG['edition']
+SOURCE_COUNT = len(json.loads((ROOT / 'research/sources.json').read_text())['files'])
 REPOSITORY = 'https://github.com/Aias00/coding-agent-book'
 PUBLIC = 'https://aias00.github.io/coding-agent-book/'
 EPUB = 'coding-agent-engineering.epub'
@@ -36,7 +37,7 @@ def make_sources(snapshot):
             '仅有未跟踪 docs/epub/；本书不将其作为实现证据' if name == 'codex' else '按发布包与 source map 标识')
         rows.append(f'| {name} | `{commit}` | {note} |')
     rows += ['\n## 材料与验证方法\n',
-        '研究脚本记录 68 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。\n',
+        f'研究脚本记录 {len(snapshot["files"])} 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。\n',
         '这些快照作为设计方案的参考依据。可运行参考内核和故障实验见第 23 章；完整方案包含明确标注的扩展设计。未构建四个上游项目或执行统一真实模型评测。\n']
     for row in snapshot['files']:
         key = row['id']
@@ -82,7 +83,7 @@ def page(title, body, chapters, current='', previous=None, following=None):
     canonical = PUBLIC + (current + '.html' if current else '')
     return f'''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="{html.escape(SUBTITLE)}。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="description" content="{html.escape(SUBTITLE)}。24 章设计方案、可运行参考内核、28 项机制测试与 {SOURCE_COUNT} 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>{html.escape(title)} · {TITLE}</title>
 <link rel="canonical" href="{canonical}"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
@@ -141,9 +142,9 @@ def main():
     prose = ''.join(c['body'] for c in chapters if c['stem'] != '26-sources')
     characters = len(re.sub(r'\s', '', prose))
     body = f'''<div class="hero"><div class="hero-copy"><p class="eyebrow">ARCHITECTURE / DESIGN DETAILS / IMPLEMENTATION</p><h1>AI Coding Agent<br><span>设计与实现</span></h1><p class="subtitle">{SUBTITLE}</p><p class="hero-description">从零构建一套 Coding Agent。把数据结构、执行时序、并发规则、权限校验和故障恢复，落实到接口与代码。</p><div class="hero-actions"><a class="primary" href="00-preface.html">开始阅读 →</a><a class="secondary" href="downloads/{EPUB}" download>下载 EPUB</a></div><a id="resume-reading" hidden>继续上次阅读 →</a></div><img class="cover" src="assets/cover.png" width="320" height="480" alt="AI Coding Agent 设计与实现书籍封面"></div>
-<div class="book-stats"><div><strong>24</strong><span>章设计与实现方案</span></div><div><strong>{characters/10000:.1f} 万</strong><span>正文字符 · 含接口与伪代码</span></div><div><strong>68</strong><span>项源码参考依据</span></div><div><strong>{CONFIG['reference_tests'] + CONFIG['lab_tests']}</strong><span>项机制与故障测试</span></div></div>
+<div class="book-stats"><div><strong>24</strong><span>章设计与实现方案</span></div><div><strong>{characters/10000:.1f} 万</strong><span>正文字符 · 含接口与伪代码</span></div><div><strong>{SOURCE_COUNT}</strong><span>项源码参考依据</span></div><div><strong>{CONFIG['reference_tests'] + CONFIG['lab_tests']}</strong><span>项机制与故障测试</span></div></div>
 <section class="introduction"><h2>关键细节，写到可以动手实现</h2><p>模型请求何时冻结？工具参数何时能执行？审批后参数变了怎么办？两个编辑怎样避免覆盖？写入成功、结果没保存就崩溃，恢复时该做什么？</p><p>全书沿着系统设计问题展开，给出字段、状态机、算法、失败分支和验收方法。Codex、DeepSeek Harness、Pi 与 Claude Code 作为参考实现穿插其中；附一套可运行、可测试的模型驱动内核。</p></section>
-<section class="catalog"><h2>全书目录</h2>{catalog}</section><section class="edition-note"><h2>第二版 · 以设计与实现为主线</h2><p>第 {EDITION} 版。保留固定源码快照与引用；新增可运行参考内核。真实模型流式接入、操作系统沙箱和分布式执行等扩展方案与已实现范围分别说明。</p><p><a href="26-sources.html">查看源码依据 →</a>　<a href="23-reference.html">运行参考内核 →</a>　<a href="{REPOSITORY}/releases/tag/v1.0.0">第一版归档 →</a></p></section>'''
+<section class="catalog"><h2>全书目录</h2>{catalog}</section><section class="edition-note"><h2>第二版增订 · 按源码追踪关键细节</h2><p>第 {EDITION} 版。补充任务业务流程、工具暴露、Skill 加载、MCP 桥接，以及四个项目的上下文压缩实现与取舍。源码事实、分析判断和设计建议分别说明，证据索引同步扩展。</p><p><a href="15-compaction.html">四份压缩实现与比较 →</a>　<a href="19-extension.html">Skill 与 MCP 调用 →</a>　<a href="26-sources.html">源码依据 →</a>　<a href="23-reference.html">参考内核 →</a></p></section>'''
     (SITE / 'index.html').write_text(page(TITLE, body, chapters))
     notice = pandoc((ROOT / 'NOTICE.md').read_text(), '--to=html5', '--wrap=none')
     notice = notice.replace('href="LICENSES/', 'href="licenses/')

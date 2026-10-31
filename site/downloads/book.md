@@ -6,6 +6,8 @@
 
 第二版将“设计与实现”设为全书主线。章节按系统问题组织：怎样建立执行内核，怎样保证工具声明与实际实现一致，怎样接受流式参数，怎样控制文件修改，怎样绑定授权，怎样恢复结果未知的调用。项目源码出现在相关设计旁，用于证明已有实践或解释替代方案。读者不必按四个项目分别学习同一组概念。
 
+2.1.0 增订进一步补齐任务业务流程、工具注册与暴露、Skill 渐进加载、MCP 桥接，以及四份源码各自的上下文压缩路径和设计取舍。新增专题采用“源码事实—分析判断—设计建议”的叙述顺序，先给实际函数与数据关系，再解释收益和代价。
+
 ## 你将得到哪些实现材料
 
 每个核心章节给出五类内容：需要解决的具体问题；接口、字段及其所有者；正常流程和失败流程；并发或持久性约束；可执行的验证方法。关键算法用伪代码解释。代码块中标为“设计接口”或“伪代码”的部分是建议方案，不应直接当作完整库使用。
@@ -22,7 +24,9 @@
 
 ## 源码证据与适用范围
 
-研究快照固定在 2026-10-30。三个开源仓库使用完整 Git 提交号；Claude Code 使用本地 2.1.88 发布包，其被引用的 13 个提取实现文件已与 source map 嵌入文本对照。完整出处、文件哈希和定位见附录 B。编号如[C01](#evidence-c01)、[D03](#evidence-d03)用于连接方案与具体参考，不表示所有建议都已经由这些项目实现。
+研究快照固定在 2026-10-30。三个开源仓库使用完整 Git 提交号；Claude Code 使用本地 2.1.88 发布包，其被引用的 14 个提取实现文件已与 source map 嵌入文本对照。完整出处、85 个证据文件的哈希和定位见附录 B。编号如[C01](#evidence-c01)、[D03](#evidence-d03)用于连接方案与具体参考，不表示所有建议都已经由这些项目实现。
+
+源码事实给出项目、快照、函数及证据编号；分析判断说明依据和适用条件；设计建议明确属于本书归纳。源码只能确认客户端行为时，不补写服务端内部机制。固定格式提示与机械边界检查，也不被当作已经证明语义保真的证据。后续修订继续按这一口径处理。
 
 本书没有公布四个产品的统一性能排名。默认值如并发数、输出限额和请求预算，是本书参考设计的起点，部署前需要通过任务集和故障测试校准。不存在一个适合所有模型、仓库和执行环境的固定参数组合。
 
@@ -231,9 +235,32 @@ Codex 将工具运行绑定到步骤上下文；DeepSeek Harness 把 turn/step �
 
 # 第 4 章 执行内核：输入认领、模型步与停止条件
 
+## 从用户任务到交付：业务流程与循环的对应
+
+本节是依据几份源码归纳的业务流程，不是它们共同采用的一套状态枚举。需求确认、代码调查和验证，可以由多次模型请求与工具调用共同完成；简单任务也可以合并阶段。应该把业务阶段与底层模型 step 分开理解。
+
+| 业务阶段 | Agent 要做什么 | 进入下一阶段的依据 |
+|---|---|---|
+| 接收和理解任务 | 确定目标、允许范围、验收条件 | 有足够信息形成可执行下一步 |
+| 调查项目 | 读取项目规则、搜索实现、核对测试和文件状态 | 有可引用的代码与错误证据 |
+| 确定方案 | 选择修改位置与验证方法 | 修改与验证计划符合任务范围 |
+| 实施 | 模型提出行动，运行时校验并执行工具 | 取得实际工具结果，继续调整 |
+| 验证 | 检查 diff，执行定向测试和必要回归 | 当前代码版本满足约定条件 |
+| 交付 | 报告改动、检查范围、未完成项 | 完成、部分完成或明确阻塞 |
+
+以路径校验修复为例：用户输入被接纳后，模型先请求搜索和读取；工具返回文件与测试；模型据此提出编辑；编辑前核对文件版本与权限；结果进入下一次模型请求；模型请求验证；实际测试失败则返回修改循环，满足条件才交付。这里每一次“据此”都应有已接纳的输入或工具结果支撑。
+
+源码中的公共执行骨架可以这样追踪：Codex 在 `run_turn()` 里组织采样、工具 future、待处理输入和停止 hook；Pi 的 `runLoop()` 在内层处理工具及 steering，在自然工作将结束时再检查 follow-up；DeepSeek 的 AgentLoop 以 turn/step、输入认领和请求准备推进；Claude Code 的 `queryLoop()` 维护跨轮状态，处理模型输出、工具和后续转换。它们说明业务阶段要落实到可观察执行过程，而非让 UI 仅凭一段助手文字判断进度。[C01](#evidence-c01)[P01](#evidence-p01)[D02](#evidence-d02)[A03](#evidence-a03)
+
+## 业务分支：暂停、纠正与结果未知
+
+缺少信息时暂停依赖该信息的行动；缺少权限时进入待决授权；用户纠正先保存为输入，再在定义好的边界改变后续计划。工具失败后，模型可以根据具体错误继续调查，但权限拒绝不能自动变成提权重试。
+
+取消或预算耗尽时，应停止新增工作并说明已经发生的效果。崩溃后缺少工具结果时，先按持久调用状态恢复，不能仅因聊天里没有成功文本就重跑。上述终态和验收条件是本书的设计建议；各项目实际取消、重试和停止行为，分别以本章后续调用路径及第 17 章为准。
+
 ## 将主循环写成状态机
 
-建议状态为 idle、preparing、generating、executing、awaiting_approval、stopping 和 terminal。状态机拥有会话写权限，工具与模型回调通过消息投递结果。每个状态允许的输入不同：generating 可以接收取消与新输入，awaiting_approval 可以接收审批响应，terminal 不能再偷偷启动工具。
+建议状态为 idle、preparing、generating、executing、settling、awaiting_approval、stopping 和 terminal。状态机拥有会话写权限，工具与模型回调通过消息投递结果。每个状态允许的输入不同：generating 可以接收取消与新输入，awaiting_approval 可以接收审批响应，terminal 不能再偷偷启动工具。
 
 ![正常回合与取消收敛的状态交接。](assets/state-machine.svg)
 
@@ -413,6 +440,44 @@ assembler 以稳定的内容块身份或 provider index 保存 name、id、argum
 
 
 # 第 7 章 工具协议：声明、校验、授权与结果终结
+
+## 模型看见声明，运行时保留实现
+
+源码事实：Codex 的 `ToolRouter` 同时持有注册表、模型可见 specs、tool mode 和 code mode 名称映射。Pi 的 agent-core 则在请求边界通过 `declareToolChanges()` 对比可执行工具与 transcript 已声明集合，记录新增和移除。两种方式都在处理同一个关系：模型收到的使用说明，应与运行时实际能解释的工具一致。[C03](#evidence-c03)[C11](#evidence-c11)[P01](#evidence-p01)
+
+模型侧通常接收名称、描述与参数 schema；handler、连接、凭据与执行上下文由宿主保存。下面是本书的概念示例，字段不是某一家模型 API 的完整请求格式：
+
+```json
+{
+  "name": "read_file",
+  "description": "读取工作区中的文本文件",
+  "inputSchema": {
+    "type": "object",
+    "properties": { "path": { "type": "string" } },
+    "required": ["path"],
+    "additionalProperties": false
+  }
+}
+```
+
+模型据此提出 `read_file({path: "src/main.ts"})`。真正读取文件的是宿主根据名称查到的 handler。调用必须携带可关联身份，结果用相同身份回到模型历史，供下一次生成使用。模型输出一段看起来像调用的普通文本，不应被当作已经执行；实际入口由 adapter 的结构化响应解析与工具路由确定。
+
+## 已安装、会话可用与本轮暴露分开管理
+
+本书建议区分三份集合：已安装能力、当前会话允许的能力、本次请求实际声明的能力。筛选涉及身份、scope、执行环境、模型支持和任务策略。集合的变化应形成新的工具计划，不能仅修改一段提示词就假定执行限制也改变。
+
+源码事实：Pi 的 `McpExposure` 定义四种暴露模式，含义如下。配置层在这里保存定义，连接与实际接入由相应扩展负责；不能把这个配置文件当作完整 MCP 执行实现。[P20](#evidence-p20)
+
+| 模式 | 模型与运行时的关系 |
+|---|---|
+| direct | 工具作为普通工具声明，code mode 也可使用 |
+| deferred | 先通过 tool_search 加载，再允许模型直接调用 |
+| codemode | 通过程序入口调用，脚本可用 searchTools 查找；不直接声明每个工具 |
+| hidden | 已登记但不可达 |
+
+Codex 的 `spec_plan` 也区分 direct、deferred、code-mode-only 与 hidden 等 exposure，并结合模型搜索能力和配置决定最终暴露。具体枚举和组合与 Pi 不完全相同，不能认为这些名称构成通用标准。[C11](#evidence-c11)
+
+延迟发现的收益是减少每次请求携带的 schema；代价是额外搜索往返，以及“已发现”“已声明”“当前可执行”三个状态必须保持一致。隐藏工具还需要执行入口实际拒绝，不能只期望模型忘记工具名称。
 
 ## ToolDefinition 应该包含哪些字段
 
@@ -870,65 +935,207 @@ LSP 可提供定义、引用、诊断与重命名，但服务可能尚未初始�
 验收用包含同名函数、过期索引、未提交改动和生成代码的仓库。让检索结果指出真实执行入口；编辑后再次查询应反映新内容；超时或无命中应返回明确结果，不能编造一个似乎合理的文件位置。
 
 
-# 第 15 章 上下文压缩：边界、结构化摘要与失败恢复
+# 第 15 章 上下文压缩：四份源码的实现、边界与取舍
 
-## 压缩触发要给自己留空间
+## 阅读口径：先看实际实现，再作方案判断
 
-当预计下一请求超过输入预算，或在安全边界达到压力阈值，才考虑压缩。输入估计必须包含待接纳用户内容和新的工具声明，不能只看上一次用量。阈值留出摘要请求、输出和重试余量。
+本章以固定本地快照为依据：Codex `57d4fac64adb`、DeepSeek Harness `687f282e8625`、Pi `16f5f0af4d85`，以及 Claude Code 2.1.88 发布包。先说明各自触发、切分、摘要与安装路径，再比较设计，最后提出本书的组合方案。源码事实、分析判断与实现建议分别标明。
 
-压缩不能解决所有超限。单个不可拆调用、系统规则或工具表过大时，总结旧聊天也无效。DeepSeek 基础压缩文档明确指出系统提示、工具及不可分单元的限制；Claude Code 的有效窗口计算也预留输出空间。[D12](#evidence-d12)[A07](#evidence-a07)
+压缩主要改变下一请求的有效上下文。原始记录如何保留、恢复时如何重建，要看各项目的日志与投影实现；不能统一理解为删除聊天记录，也不能把所有名为 compaction 的分支都理解为一次模型摘要。
 
-## 可压缩边界如何选择
+## Pi：从有效会话投影切分，追加摘要记录
 
-把已结算 step 作为基本单元，保留近期尾部。选择边界时不得切断工具调用与结果，不得把尚待批准的行动总结成已执行，不得跨越仍未解释的 unknown 副作用。
+### 触发与 token 估算
+
+源码调用主线是 `AgentSession._checkCompaction()` → `_runAutoCompaction()` → `prepareCompaction()` → `compact()` → `SessionManager.appendCompaction()`，随后刷新模型上下文。自动检查还区分普通阈值、上下文溢出及可恢复的长度截断；已成功结束的回答与需要继续的失败响应，其重试行为不同。溢出恢复有一次 compact-and-retry 的保护，防止相同恢复不断循环。[P04](#evidence-p04)
+
+`shouldCompact()` 的实际条件为：
 
 ```text
-prefix = complete_units_before(boundary)
-tail = complete_units_from(boundary)
-summary = summarize(prefix, schema)
-validate(summary, required_facts)
-commit(checkpoint(summary, boundary, prompt_state), tail_reference)
+contextTokens > contextWindow - reserveTokens
+
+默认 reserveTokens    = 16,384
+默认 keepRecentTokens = 20,000
 ```
 
-摘要写入成功前保留旧上下文；不要先删除，再去请求模型总结。
+使用量优先取有效助手响应中的 usage，再加上其后新增消息的估计。`estimateProjectedContextTokens()` 还会检查 usage 所在位置与后续 context edit、compaction 的关系。如果旧 usage 已不能代表当前投影，就重新估算，避免刚压缩完又被历史大数字触发。[P06](#evidence-p06)
 
-## 摘要应该使用明确字段
+一个容易误读的细节：`reserveTokens` 用于触发余量，不是这里传给摘要请求的输出上限。`generateSummaryWithUsage()` 中保留了 `_reserveTokens` 参数，但注释和实现说明它不再用于这个目的；摘要输出按模型调用配置处理。[P06](#evidence-p06)
+
+### 保留边界与长回合拆分
+
+`prepareCompaction()` 先构造 `buildSessionProjection()`，找到最近有效摘要，再通过 `findProjectedCutPoint()` 从尾部累计 token，选择保留起点。边界依据模型可见消息，而不是简单按磁盘记录数量切一半。[P06](#evidence-p06)
+
+`isCutPointMessage()` 不接受 toolResult。允许在带工具调用的 assistant 消息之前切，这样后面的工具结果也会保留。Pi 同时允许切进一个长回合内部：`isSplitTurn` 为真时，把更早历史与当前回合前缀分开总结，再合并为一份摘要；根据实际历史，可能需要两次摘要调用。[P06](#evidence-p06)
 
 ```text
-Summary {
-  user_goal, latest_constraints[], decisions[],
-  modified_files[{path, version, purpose}],
-  verification[{command_or_check, scope, result, version}],
-  unresolved_calls[], pending_work[],
-  important_evidence_refs[], excluded_history_boundary
+较早历史 → history summary
+当前回合已压缩前缀 → turn-prefix summary
+当前回合后半段 → 保留原文
+```
+
+因此“所有项目都只能按完整用户回合压缩”不符合这份源码。
+
+### 摘要生成与持久化
+
+Pi 把待总结消息转换并序列化为文本，放入 `<conversation>`；已有摘要通过 `<previous-summary>` 交给模型更新。提示要求固定 Markdown 板块：Goal、Constraints & Preferences、Progress、Key Decisions、Next Steps、Critical Context。它不是上一版通用方案中展示的 JSON 对象，也不能仅因提示规定格式就认为输出已经通过严格结构解析。[P06](#evidence-p06)
+
+`compact()` 会补入读取、修改文件列表；长度截断或错误响应不能作为正常摘要提交，试图调用工具的摘要也会被拒绝。`completeSummarization()` 使用可见的重试入口，并设置 `cacheRetention: "none"`；不能据此推导所有缓存行为，但能确认摘要请求采用了明确的独立策略。[P06](#evidence-p06)
+
+结果通过 `appendCompaction()` 追加到会话树，包含 summary、firstKeptEntryId、tokensBefore、details、usage 和有效 systemMessage。之后 `buildContextEntries()` 选取最新压缩记录、从 firstKeptEntryId 起保留的旧记录，以及压缩后新增记录。原始会话仍可保留，有效模型历史由投影选择。[P05](#evidence-p05)
+
+设计判断：Pi 的路径直观，适合作为第一版实现起点。长回合切分比必须保留整回合更灵活，旧 usage 失效检查也很实用；代价是切分与历史投影仍有复杂边界，双摘要可能增加等待与成本。
+
+## DeepSeek Harness：受约束的 surface 替换
+
+### 两个自动入口与真实阈值
+
+`BasicCompactionEngine` 在 `agent/pre-step` 检查压力，在 `agent/request-error` 处理 provider 确认的上下文溢出。普通压力路径先尝试可选的 toolResultPruner，重新测量，仍然超限才调用摘要；裁剪已经足够时不会继续付出摘要调用成本。[D19](#evidence-d19)
+
+`resolveCompactSpec()` 的公式是：
+
+```text
+messageBudget = contextWindow - reservedCompletionTokens
+threshold = floor(min(
+  contextWindow * thresholdRatio,
+  messageBudget - headroomTokens
+))
+retainTokens = floor(messageBudget * retainRatio)
+```
+
+默认 thresholdRatio 为 0.8，retainRatio 为 0.16，headroomTokens 为 65,536；也可直接配置保留 token 数，或按模型覆盖策略。普通压力测量达到阈值后进入处理；provider 溢出恢复绕过普通阈值与保留尾部政策，尝试一次有用的平衡缩减。[D20](#evidence-d20)[D19](#evidence-d19)
+
+设计判断：公式把窗口、输出预留和额外空间一起考虑，比固定百分比更明确。但默认 headroom 不能不加判断地移植。例如窗口 128,000、输出预留 8,000 时，阈值为 54,464，明显早于窗口 80%；较小窗口需要重新校准参数。无效预算会作为配置错误处理，不能把这套默认值说成普遍最优。
+
+### 切分、摘要与缓存前缀
+
+`selectCompactableRange()` 跳过 surface 开头的 system/message，从尾部按价格累计保留内容，并调用配对检查避免把 assistant 工具请求和结果切开。所选的是当前有效 surface，不是随意删除一段原始事件。[D21](#evidence-d21)
+
+`summarizeWithLlm()` 保留原系统消息、工具声明和选定对话前缀，再在最后追加一条 user-role 压缩指令。源码注释说明，这是为了复用已有请求前缀缓存；实际是否命中仍取决于路由与供应商。[D22](#evidence-d22)
+
+它要求 Markdown 检查点，包含用户意图、关键技术、文件代码、错误修复、待办、当前工作、下一步和关键上下文。输出只提取可接受的文本，空摘要与不完整终态不能正常提交。已有检查点会被合并更新，而非要求原封不动复制。[D22](#evidence-d22)
+
+### 成功条件与日志提交
+
+`summarizeCompaction()` 计算带包装 checkpoint 的 token 价格，要求它严格小于被替换片段；否则报错。`compactSurfaceRegion()` 在异步摘要后再次检查稳定性：自动路径要求 whole-surface 一致，手动路径检查 selected-span 仍在、连续、价格一致且边界平衡。[D21](#evidence-d21)
+
+提交按生命周期记录：
+
+```text
+compaction/start
+→ 生成并检查摘要
+→ compaction/summary
+→ user/message，携带 surfaceOp: replace
+→ compaction/end
+```
+
+这是日志记录与有效 surface 替换机制，不应直接称为任意存储事务。失败时尝试记录关闭标记；若关闭失败，未匹配 start 仍可被检测。手动压缩还提供明确 flush 检查点。模型可见消息改变，原始事件依然用于追溯。[D21](#evidence-d21)
+
+溢出恢复还有一个细节：前面的无模型裁剪可能已经产生持久缩减，即使后续摘要失败，只要 replacement generation 确实前进，代码仍可按限制重试。没有缩减证据时，不会仅凭“尝试过压缩”就盲目重试。[D19](#evidence-d19)
+
+设计判断：在本章核对的客户端流程中，它对大小、配对、历史稳定性和失败证据的约束最值得借鉴。但这些机械检查不能证明摘要没有漏掉业务约束，语义保真仍需任务实验。
+
+## Codex：先识别三条分支
+
+### 压缩入口并不只有一种行为
+
+`run_auto_compact()` 首先检查 Feature::TokenBudget，然后根据 provider 的 remote_compaction 能力选择远程 V2 或本地路径。触发可以发生在回合前、回合中或回合后，具体条件结合 token status、配置和已准备好的后台候选。[C01](#evidence-c01)
+
+| 分支 | 本地代码能确认的行为 |
+|---|---|
+| TokenBudget | 跳过模型/服务端总结，调用 start_new_context_window |
+| RemoteCompactionSupport::V2 | 接收服务端压缩项，筛选保留项并安装历史 |
+| Unsupported | 通过本地摘要调用构造替代历史 |
+
+因此不能给 Codex 统一套上“生成一段自然语言摘要，再保留最近对话”的描述。[C19](#evidence-c19)[C17](#evidence-c17)[C08](#evidence-c08)
+
+### 本地摘要的保留规则
+
+`run_compact_task_inner_impl()` 克隆历史，追加压缩提示，消费摘要响应。若压缩请求本身仍超限，会从最旧历史项开始移除再尝试；某些取消、预算或不完整响应错误直接结束对应路径。[C08](#evidence-c08)
+
+生成摘要后，`build_compacted_history()` 从最近用户消息向前，在 20,000 token 的预算中挑选保留，再加入摘要，并重建初始上下文、world state 和窗口元数据，最后 `replace_compacted_history()`。这条保留规则侧重用户消息，不等于 Pi 那种保留最近完整消息尾部。[C08](#evidence-c08)[C09](#evidence-c09)
+
+设计判断：保留用户需求原文有利于维持任务方向，但较早的具体工具轨迹更依赖摘要。对排错任务是否更好，需要检查压缩后是否还能使用必要错误和代码证据。
+
+### 远程 V2 与后台候选
+
+远程路径接收 `ResponseItem::Compaction`，其可见类型含 encrypted_content。`build_v2_compacted_history()` 按消息类型和 feature 筛选保留项，以 64,000 token 预算裁剪，再追加服务端压缩项。服务端内部摘要如何编码、是否比文本摘要保真，仅靠本地客户端源码无法确认。[C17](#evidence-c17)[C21](#evidence-c21)
+
+后台候选也不能直接安装：`take_ready()` 检查历史 generation；安装路径检查模型 slug 与 comp_hash，兼容性不符返回不安装。这是合理的异步优化约束：预先计算的结果必须仍然对应当前历史和模型。[C20](#evidence-c20)[C18](#evidence-c18)
+
+设计判断：这些版本与候选检查值得迁移到自建系统；远程摘要质量不纳入本章排名。TokenBudget 的窗口轮换又是另一类目标，不能与有损摘要质量直接比较。
+
+## Claude Code：分层缩减与压缩后的工作状态恢复
+
+### 请求前的处理次序
+
+本节依据本地 2.1.88 发布包提取实现，受构建和 feature gate 控制的路径不视为所有用户默认启用。`queryLoop()` 中可见：工具结果预算处理 → 可选 snip → microcompact → 可选 context collapse → autocompact。每层可能缩减上下文，完整摘要不是唯一策略。[A03](#evidence-a03)
+
+`microcompactMessages()` 先尝试时间触发路径。符合条件时保留近期可压缩工具结果，把较早结果正文替换成清理标记，调用身份仍然存在。cached 路径则通过 API 层 cache edits 管理服务端缓存中的结果，不直接改写本地消息正文。条件不满足时，这个入口可以直接返回原消息。[A08](#evidence-a08)
+
+时间触发配置默认 enabled=false、间隔 60 分钟、保留 5 项，可由运行配置控制。不能因为源码有一段缓存优化，就断言当前产品一定使用它。[A17](#evidence-a17)
+
+### 完整自动压缩与失败限制
+
+不计环境覆盖时，默认阈值计算为：
+
+```text
+effectiveWindow = contextWindow - min(modelMaxOutputTokens, 20,000)
+autoCompactThreshold = effectiveWindow - 13,000
+```
+
+`autoCompactIfNeeded()` 先判断开关、调用来源与阈值，尝试 session memory compaction，没有可用结果时进入 compactConversation。完整自动压缩连续失败达到 3 次后跳过后续尝试，避免每轮重新执行无效请求。不同 feature 路径还有各自控制，不能把某一分支当作全部实现。[A07](#evidence-a07)
+
+### 摘要以后为什么还要恢复附件
+
+`compactConversation()` 运行 PreCompact hooks，生成摘要并处理过长请求重试；成功后准备部分文件附件、异步 agent 状态、计划及计划模式、已调用 Skill 内容，重新提供延迟工具、Agent 和 MCP instructions 等信息。已发现的延迟工具名还记录到 boundary metadata，供后续 schema 筛选继续使用。[A09](#evidence-a09)
+
+最终 `buildPostCompactMessages()` 以确定次序组合：
+
+```text
+boundaryMarker
++ summaryMessages
++ 可选 messagesToKeep
++ attachments
++ hookResults
+```
+
+这解释了压缩与能力管理的关系：摘要能表达“正在发布”，但当前有效 Skill 的操作要求、已加载的工具和 MCP 指令仍需要恢复位置。完整 Skill 目录也不会无条件重新注入，源码专门区分目录与已使用 Skill 内容。[A09](#evidence-a09)
+
+设计判断：工作状态恢复是这里最值得借鉴的产品设计。但恢复内容也占窗口，源码因此单独估算 truePostCompactTokenCount，并记录可能再次触发压缩。不能只看摘要正文很短，就认为下一请求已经足够小。[A09](#evidence-a09)
+
+## 依据代码比较：哪个环节更合理
+
+下面是基于已检查客户端代码的工程判断，不是实际成功率或价格排名。
+
+| 目标 | 更值得参考的部分 | 同时付出的代价 |
+|---|---|---|
+| 第一版容易实现和排错 | Pi 的准备、切分、摘要、追加与投影 | 仍需处理长回合、usage 失效与摘要调用成本 |
+| 压缩替换可检查、失败可解释 | DeepSeek 的配对、变小、稳定性及日志标记 | token 定价与 surface 一致性实现更复杂，默认预算需校准 |
+| 压缩后继续原有工作方式 | Claude Code 的 Skill、工具、文件与 MCP 恢复 | 附件增加输入，门控与缓存状态复杂 |
+| 异步预压缩与服务端集成 | Codex 的候选版本、模型兼容与安装 | 依赖 provider，服务端内部保真无法本地验证 |
+
+缓存方面，Pi 的独立文本摘要与 DeepSeek 的原请求前缀复用采用不同策略。前缀复用有减少重复计算的设计动机，但实际 token、缓存命中、路由差异及摘要次数需要实测；不能只凭接口断言哪一家更便宜。
+
+固定 Markdown 格式也不等于事实验证。源码中能看到长度、终态、配对和稳定性检查，但这些不能证明“计划跑测试”没有被摘要错误写成“测试已通过”。需要用压缩后继续任务的结果评估语义损失。
+
+## 本书建议：按清晰内核逐项补强
+
+本节是设计建议。可以从 Pi 式的清晰流程起步，加入 DeepSeek 的实际缩小与历史稳定性检查，按 Claude Code 的思路恢复当前任务必要的能力信息，需要后台优化时再加入 Codex 式候选兼容检查。它不是四个项目之一已经提供的一份统一实现。
+
+建议将强事实与摘要分开：已修改文件、验证结果和未知调用由执行记录提供；模型摘要说明目标、思路与背景。下面字段是一种可选设计，不是前述项目共有的真实 schema：
+
+```text
+Checkpoint {
+  source_history_version, summarized_range, kept_from,
+  summary, effective_prompt_state, tool_plan_revision,
+  verification_refs[], unresolved_calls[], evidence_refs[]
 }
 ```
 
-字段不保证模型一定填写正确，因此需要与持久事实核对：已修改文件来自工具结果，测试状态来自验证记录，未知调用来自调用表。自然语言可用于解释原因，机器事实应由确定性程序附上，减少摘要幻觉把“计划跑测试”写成“测试已通过”。
+权限与执行范围由运行时保持，摘要中的“已经允许”不直接产生授权。摘要提交失败保留旧输入；候选失效拒绝安装；恢复旧测试证据时检查对应代码版本。
 
-## 系统和工具状态不能只靠摘要猜
-
-保存压缩边界对应的有效系统提示、工具版本与运行事实，恢复后重建下一请求。Pi 的压缩记录携带系统消息状态，Codex 的历史重建关注窗口和基线元数据，说明自然语言摘要之外仍需要机器状态。[P05](#evidence-p05)[C08](#evidence-c08)[C09](#evidence-c09)
-
-权限、cwd、分支和工具可见性变化需按各自规则重建，不能让摘要里的旧描述覆盖真实控制面状态。模型应知道当前限制，同时能追溯历史行动发生时的条件。
-
-## 压缩与新输入并发时怎么办
-
-先记录压缩基于的 `history_version`。压缩期间允许新输入入队，但不改写被冻结前缀；提交前检查前缀版本仍兼容。若历史被回滚或分支切换，丢弃候选摘要；若只是尾部追加，可以把摘要接到明确尾部，前提是 checkpoint 定义支持。
-
-后台预压缩能减少等待，但候选必须经过版本检查。不能把昨天完成的摘要因为“已经准备好”直接安装到当前分支。
-
-## 压缩失败要有上限
-
-摘要请求可能超时、超限、被用户取消或返回无效字段。保留原历史，记录失败 attempt，尝试更小前缀或更强裁剪，但限制次数。连续失败后明确阻塞或要求新会话交接，避免为了压缩不断花费更多 token。
-
-工具输出裁剪与完整摘要是两种策略。前者保留关键片段与引用，后者重组历史。先移除明显冗余大输出，可能减少摘要需求；但删除错误证据后模型重跑同一任务，最终成本可能增加。
-
-## 验证压缩的真正指标
-
-在压缩前注入“只改测试”、一项失败检查、一个已修改版本和一个未知调用。压缩后继续，确认约束仍生效、不会重新写已完成动作、不会把失败测试当成功。再模拟摘要提交失败，确认旧历史仍可恢复。
-
-压缩率和摘要可读性只是辅助指标。关键是后续行动是否保留必要事实和授权范围。一个简短却丢失用户限制的摘要，不能算成功压缩。
+验收时至少注入：用户最新限制、已修改版本、失败测试、未知调用、长工具输出和已加载 Skill。压缩后确认没有越界修改、重复动作、丢失待办、误判验证或失去必要能力。语义验证与格式检查分别报告，才能知道改进发生在哪个层面。
 
 
 # 第 16 章 持久化：事务边界决定恢复能力
@@ -1106,6 +1313,45 @@ cancel 可以中止当前工作，steer 可以改变后续计划，两者不应�
 
 # 第 19 章 扩展机制：依赖注入、生命周期与协议版本
 
+## Tool、Skill 与 MCP 的分工
+
+本节先依据源码区分三类对象，再解释它们怎样协作。Tool 是可执行接口；Skill 是任务方法及配套资源；MCP 是把外部服务能力接入宿主的协议。它们可以组合，但不需要把一个 Skill 直接注册成同名可执行函数，也不能认为连接 MCP 就等于把服务全部内容直接发送给模型。
+
+| 对象 | 宿主管理什么 | 模型通常接触什么 |
+|---|---|---|
+| Tool | 定义、运行时、版本、执行上下文与策略 | 名称、说明、参数 schema，以及调用结果 |
+| Skill | 名称、适用说明、正文、脚本、引用资源、来源与可见性 | 先接触目录，激活后读取具体指令 |
+| MCP server | 配置、连接、认证、能力同步、调用与清理 | 经宿主转换和筛选后的工具或资源入口 |
+
+上表是跨项目的职责归纳。各项目的真实暴露位置与加载机制，以下分别注明。
+
+## Pi 的 Skill：目录进入提示，正文通过读取加载
+
+源码事实：`loadSkills()` 和目录扫描逻辑查找 SKILL.md，解析名称、description 与调用控制。`formatSkillsForPrompt()` 先过滤 disableModelInvocation，再生成 `<available_skills>`，其中包含 name、description 和 location。目录向模型说明何时读取 Skill 文件，相关相对资源按 Skill 所在目录解析。[P19](#evidence-p19)
+
+```text
+发现 Skill → 解析元数据 → 过滤模型可调用项
+→ 将名称、简介、位置放入提示
+→ 模型按需通过 read、bash 或间接入口加载正文
+→ 依据正文调用真实工具
+```
+
+这里是渐进加载：目录让模型知道有哪些方法，正文提供具体操作。Pi 这段函数还根据可用读取入口改变指引文字；不能把它描述成所有情况下都存在一个 load_skill 函数。模型禁用项可以有显式用户入口，具体指令形式由该宿主定义，不能把不同项目的斜杠命令混为统一协议。[P19](#evidence-p19)
+
+设计判断：这种方式容易接入已有文件工具，减少新接口；但宿主必须保证正文位置可访问、来源可信，并使活跃指令在压缩后仍可恢复。只列简介而没有可用加载入口，不能形成完整 Skill 能力。
+
+## DeepSeek Harness 的 Skill：注册表、目录和 loader 分开
+
+源码事实：`SkillRegistry` 合并 provider 与运行时贡献，按 scope 和来源规则提供 list、snapshot、get。读取来源由 provider 决定，注册表本身不等于文件扫描器。`tool-skill` 再把目录与加载入口提供给模型。[D24](#evidence-d24)[D23](#evidence-d23)
+
+模型激活路径通过 `skill` 工具加载正文，使用 `renderSkillContent()` 返回一致指令形式，结果进入普通工具历史。用户显式激活则从已认领的用户消息中识别 `/name`，检查 user-invocable，再把相同渲染形式作为指令上下文加入 step。未知或用户禁用名称留作普通文本，不自动执行。[D23](#evidence-d23)
+
+这份目录不是固定在 system prompt 的静态字符串：`agent/pre-step` 检查当前 agent 是否真能看见该插件注册的那个 skill 工具，再取得完整 snapshot、过滤 model-invocable 项、计算目录摘要，与已发布目录比较。目录变化时发布替换目录；曾发布后变为空，也会发布空目录，明确退休旧名称。provider snapshot 不完整则保留上次可靠视图，不用临时缺失抹掉目录。[D23](#evidence-d23)
+
+一个细节很重要：工具可见性比较的是定义身份，而不仅是名字。另一个 scope 注册同名 skill 工具时，不应自动继承原插件的目录和加载语义。目录消息的角色、来源与记录方式都由实现确定；不能把 Skill 目录一概说成 system 指令。[D23](#evidence-d23)
+
+设计判断：把 provider、registry、目录呈现和正文 loader 分开，有利于本地、远程和按 agent 配置组合，但增加了目录一致性与生命周期成本。Skill 里的脚本仍需要执行工具，Skill 提到某个 MCP 能力也不自动为它授权。
+
 ## 扩展点按责任定义
 
 常见扩展包括模型 provider、工具、上下文贡献、执行器、存储 provider 和 UI renderer。不要用一个任意修改全局对象的 callback 承载所有功能。每类扩展声明输入、输出、顺序、是否可短路、错误归属与资源释放方式。
@@ -1146,9 +1392,42 @@ mandatory guard 不接受普通插件放宽，后置脱敏不改变真实执行�
 
 ## MCP 接入的实际工作
 
-MCP 工具接入仍要管理 server 生命周期、连接 readiness、schema 变化、认证、超时和名称冲突。远端工具声明的只读或并发提示不能自动成为宿主强安全保证；部署方需要自己的信任与权限规则。
+源码事实：DeepSeek 的 `mcp-client.apply()` 先校验连接配置和服务命名空间，建立 connection supervisor，再等待初始连接与工具发现。supervisor 管理连接代际、重连、活动工具注册与卸载清理。`failOnStartupError` 会影响初始失败处理，因此“配置存在”“服务已连上”“工具已注册”是不同状态。[D25](#evidence-d25)[D26](#evidence-d26)
 
-规范化远端名称后保留 server/tool 原始身份，授权与审计使用实际目标。server 重连后 schema revision 变化，下一请求更新工具计划；进行中的旧调用按原版本结算。
+`syncTools()` 将服务端工具转换为普通 ToolDefinition：description 和 inputSchema 进入宿主定义，execute 路径最终使用 client.callTool。模型调用仍经过普通 ToolRuntime，而不是绕过宿主直接控制服务器。[D27](#evidence-d27)
+
+```text
+client.listTools()
+→ 构建下一代 ToolDefinition
+→ ctx.tools.register(definition)
+→ 本轮工具计划筛选与暴露
+→ 模型提出调用
+→ 宿主校验、策略与调度
+→ client.callTool({name: rawName, arguments: args})
+→ 结果归一化并进入历史
+```
+
+这是一条依据实现整理的时序，省略协议协商、网络认证等传输字段，不能直接当作完整 MCP wire request。MCP 还可以提供资源，宿主是否暴露读取入口、怎样将内容纳入上下文，是另一层适配；DeepSeek 的这份桥接文档明确说明其能力和不支持项，不能把协议所有特性都归给一个插件。[D26](#evidence-d26)
+
+### 公开名称与原始名称不能混淆
+
+`publicToolName()` 根据本地配置的 serverName 与 rawName 形成模型名称，常见形式为 `mcp__github__get_issue`。该实现还处理目标模型的字符与 64 字符限制；发生有损规范化或截断时附加身份摘要，降低名称碰撞风险，重复定义仍由同步逻辑检查。这个公开命名策略属于宿主，不是 MCP 强制格式。[D27](#evidence-d27)
+
+真正调用远端时，代码保存并使用原始 tool.name。它不从公开名称按下划线反向拆出 rawName，这避免名称规范化后错误路由。
+
+### 工具同步失败的两个阶段
+
+`syncTools()` 先获取完整列表并构建下一代，再切换注册。发现失败或列表重复发生在第一阶段，旧代保持不动；进入第二阶段后先撤销旧代，再注册新代。若新注册与其他贡献冲突，会撤销已注册的部分，最终该服务不留下半套工具，可能变为零项或抛出错误，取决于调用配置。不能笼统声称所有同步失败都保留旧代。[D27](#evidence-d27)
+
+源码还分别处理取消信号、调用超时和 MCP 错误结果；模型收到失败，不伪装成功。结果中的文本、结构化值和图片等需要适配与策略处理，不能仅把返回对象随意转成字符串。要求 task-based execution 的工具在此桥接不支持时会明确拒绝。[D27](#evidence-d27)
+
+设计判断：统一 ToolRuntime 能复用校验与策略，明确命名空间有利于权限和审计。远端声明不应自动成为强授权依据；重连后 schema 或目标变化，需要让后续工具计划和授权同步更新。这个约束属于自建系统的设计要求，不能仅凭成功 listTools 就认为已经满足。
+
+## 三者协作：处理一个 GitHub Issue
+
+下面是基于前述能力的组合示例，不代表某个项目存在同名内置 Skill：用户要求修复一个 Issue；模型从目录选择适用 Skill，加载调查与验证方法；经 MCP 工具读取 Issue；经本地文件工具调查、编辑；经验证工具取得结果；最后按 Skill 的要求报告。
+
+Skill 决定方法，Tool 提供行动接口，MCP 把一部分行动接到外部服务。所有真实行动仍由运行时接纳和执行。完整定义、当前会话允许项、本轮可见项、已加载 Skill 内容与外部连接状态应分别管理；压缩后怎样恢复它们，见第 15 章的 Claude Code 路径。
 
 ## Code mode 不应该绕过底层工具
 
@@ -1545,6 +1824,22 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 
 先明确要实现的约束，再看对应文件的接口、调用点、失败分支和测试。这样能够学到可迁移的设计，而不仅是记住当前目录布局。
 
+## 增订专题的函数地图
+
+| 问题 | 源码入口 | 证据 |
+|---|---|---|
+| Skill 目录怎样暴露给模型 | Pi formatSkillsForPrompt；DeepSeek tool-skill pre-step | [P19](#evidence-p19)[D23](#evidence-d23) |
+| Skill 来源和范围怎样合并 | DeepSeek SkillRegistry | [D24](#evidence-d24) |
+| MCP 工具怎样转成普通工具 | DeepSeek syncTools、createMcpToolDefinition | [D27](#evidence-d27) |
+| MCP 连接和初始发现谁管理 | DeepSeek mcp-client.apply | [D25](#evidence-d25) |
+| 直接、延迟和程序入口怎样选择 | Pi McpExposure；Codex spec_plan | [P20](#evidence-p20)[C11](#evidence-c11) |
+| 压缩什么时候发生 | Pi shouldCompact；DeepSeek compactIfNeeded；Claude shouldAutoCompact | [P06](#evidence-p06)[D19](#evidence-d19)[A07](#evidence-a07) |
+| 摘要是否更小、历史是否仍兼容 | DeepSeek summarizeCompaction、稳定性检查 | [D21](#evidence-d21) |
+| 服务端压缩与窗口重置怎样区分 | Codex run_auto_compact 的分支 | [C01](#evidence-c01)[C17](#evidence-c17)[C19](#evidence-c19) |
+| 压缩后怎样恢复 Skill 与 MCP 指令 | Claude compactConversation | [A09](#evidence-a09) |
+
+第 15 章比较的是这些可检查的客户端设计。摘要准确率、实际费用和真实任务成功率没有统一实验依据，不提供数值排名。
+
 
 # 附录 B 源码快照与证据索引
 
@@ -1561,7 +1856,7 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 
 ## 材料与验证方法
 
-研究脚本记录 68 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
+研究脚本记录 85 个文件。Claude Code 被引用的提取实现逐一与 `cli.js.map` 内对应 `sourcesContent` 对照；这验证本地一致性，不替代发布包来源认证或构建可达性证明。研究材料中有既有书稿和压缩包，本书未将其并入分析正文。
 
 这些快照作为设计方案的参考依据。可运行参考内核和故障实验见第 23 章；完整方案包含明确标注的扩展设计。未构建四个上游项目或执行统一真实模型评测。
 
@@ -1676,6 +1971,41 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - 定位：第 1 行，`Apache License`；文件共 201 行。
 - SHA-256：`d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc`
 - [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/LICENSE#L1)
+
+## C17 · codex {#evidence-c17}
+
+- 相对路径：`codex/codex-rs/core/src/compact_remote_v2.rs`
+- 定位：第 480 行，`fn build_v2_compacted_history`；文件共 1353 行。
+- SHA-256：`cb81ae523a2d3674ffe0acd12a492431d773e1148a420bbd99850b9081277673`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_remote_v2.rs#L480)
+
+## C18 · codex {#evidence-c18}
+
+- 相对路径：`codex/codex-rs/core/src/compact_remote_v2_installation.rs`
+- 定位：第 86 行，`candidate.model_info.slug`；文件共 299 行。
+- SHA-256：`51bc95908de2153856836f931b25deed831c5e2c3ab13a3dc35231da3a0ae0be`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_remote_v2_installation.rs#L86)
+
+## C19 · codex {#evidence-c19}
+
+- 相对路径：`codex/codex-rs/core/src/compact_token_budget.rs`
+- 定位：第 58 行，`sess.start_new_context_window`；文件共 69 行。
+- SHA-256：`49682d338de201896ee122e36b16dc62072ce791c4acea52c7c0a6b615e6e20f`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_token_budget.rs#L58)
+
+## C20 · codex {#evidence-c20}
+
+- 相对路径：`codex/codex-rs/core/src/session/async_compaction.rs`
+- 定位：第 162 行，`candidate.prefix.generation`；文件共 222 行。
+- SHA-256：`275a1ea41773da9644e9f03d41548fed92cf4ad8891a0b4fcd61675ff64ef909`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/async_compaction.rs#L162)
+
+## C21 · codex {#evidence-c21}
+
+- 相对路径：`codex/codex-rs/protocol/src/models.rs`
+- 定位：第 1296 行，`    Compaction {`；文件共 4757 行。
+- SHA-256：`753498bc730ba21ded710d9aa2b2f9163e6bbe4eaa18f1c25d998c36138a54f7`
+- [固定提交源码](https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/protocol/src/models.rs#L1296)
 
 ## D01 · deepseek-harness {#evidence-d01}
 
@@ -1803,6 +2133,69 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - SHA-256：`da63b3f79622bcb69ebafc345b04c4b930a5bd871c2cb13d1adcacf7afe3aa5e`
 - [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-pi-ai/README.md#L1)
 
+## D19 · deepseek-harness {#evidence-d19}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/index.ts`
+- 定位：第 113 行，`class BasicCompactionEngine`；文件共 452 行。
+- SHA-256：`c298756c1d06a24593dc573e08f337f7f012675bcfaa675edb7d5368b19649f6`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/index.ts#L113)
+
+## D20 · deepseek-harness {#evidence-d20}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/config.ts`
+- 定位：第 153 行，`function resolveCompactSpec`；文件共 362 行。
+- SHA-256：`4972edc6447dcff87eab54c3a9c5984171238aa06aa0eb34ffde4bfac4ce1275`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/config.ts#L153)
+
+## D21 · deepseek-harness {#evidence-d21}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/region.ts`
+- 定位：第 117 行，`function selectCompactableRange`；文件共 600 行。
+- SHA-256：`295b53cc9e924f7cb2e843e0d0d296e89ead73da2aab9790282db30736e2e063`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/region.ts#L117)
+
+## D22 · deepseek-harness {#evidence-d22}
+
+- 相对路径：`deepseek-harness/packages/compaction/compaction-basic/src/summarizer.ts`
+- 定位：第 120 行，`function summarizeWithLlm`；文件共 221 行。
+- SHA-256：`03ef6eb0b6a011530829820e30ff709c2c1b34cfa37a98c19c0037432b9d2f55`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/summarizer.ts#L120)
+
+## D23 · deepseek-harness {#evidence-d23}
+
+- 相对路径：`deepseek-harness/packages/skill/tool-skill/src/index.ts`
+- 定位：第 1 行，`file`；文件共 433 行。
+- SHA-256：`29f6cf10c7247379298d9a96a53aef9cb2b21dcf7266f57ab147860b27d7cc44`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/skill/tool-skill/src/index.ts#L1)
+
+## D24 · deepseek-harness {#evidence-d24}
+
+- 相对路径：`deepseek-harness/packages/skill/skill/src/index.ts`
+- 定位：第 356 行，`class SkillRegistry`；文件共 868 行。
+- SHA-256：`af4fad67fb086c3f5c93aed4604830718b4535e7e59a60d680404b07ea08477c`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/skill/skill/src/index.ts#L356)
+
+## D25 · deepseek-harness {#evidence-d25}
+
+- 相对路径：`deepseek-harness/packages/mcp/mcp-client/src/index.ts`
+- 定位：第 154 行，`async function apply`；文件共 203 行。
+- SHA-256：`f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/index.ts#L154)
+
+## D26 · deepseek-harness {#evidence-d26}
+
+- 相对路径：`deepseek-harness/packages/mcp/mcp-client/README.md`
+- 定位：第 1 行，`file`；文件共 229 行。
+- SHA-256：`346ad21f0c7f8bd7248a021513228769fcde1dec7065a3ea77e809f999805806`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/README.md#L1)
+
+## D27 · deepseek-harness {#evidence-d27}
+
+- 相对路径：`deepseek-harness/packages/mcp/mcp-client/src/tools.ts`
+- 定位：第 113 行，`async function syncTools`；文件共 511 行。
+- SHA-256：`59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9`
+- [固定提交源码](https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/tools.ts#L113)
+
 ## P01 · pi {#evidence-p01}
 
 - 相对路径：`pi/packages/agent/src/agent-loop.ts`
@@ -1929,6 +2322,20 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - SHA-256：`d534e0fa1484844a097963d5f4fb4df9397c5a1b5e29e42aed7575ab6f67989b`
 - [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/modes/rpc/rpc-mode.ts#L1)
 
+## P19 · pi {#evidence-p19}
+
+- 相对路径：`pi/packages/coding-agent/src/core/skills.ts`
+- 定位：第 358 行，`function formatSkillsForPrompt`；文件共 514 行。
+- SHA-256：`8dcc644dbabbb34238f609ecf191c0da370d74873ccaccaf3c3cd0e7703d9431`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/skills.ts#L358)
+
+## P20 · pi {#evidence-p20}
+
+- 相对路径：`pi/packages/coding-agent/src/core/mcp-servers.ts`
+- 定位：第 52 行，`export type McpExposure`；文件共 346 行。
+- SHA-256：`0aaad23b26f31f743bdd117754f4c871ea821279bf68f8ba5d71eccbb1602c6a`
+- [固定提交源码](https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/mcp-servers.ts#L52)
+
 ## A01 · ccsource {#evidence-a01}
 
 - 相对路径：`ccsource/package/package.json`
@@ -2038,6 +2445,13 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 - SHA-256：`9dfe9c2203aac5c3cc6d49e45bf2f8fd381582781b5cec3abbc4ceb6d219e177`
 - 本地提取文本与发布包 source map 嵌入文本一致。
 
+## A17 · ccsource {#evidence-a17}
+
+- 相对路径：`ccsource/package/src-extracted/src/services/compact/timeBasedMCConfig.ts`
+- 定位：第 30 行，`const TIME_BASED_MC_CONFIG_DEFAULTS`；文件共 43 行。
+- SHA-256：`aede0336973766a4ae25d2625156d3f9300736896ed4691b566e1c98472fd6f9`
+- 本地提取文本与发布包 source map 嵌入文本一致。
+
 ## 官方补充资料
 
 - [OpenAI：Codex as a platform](https://developers.openai.com/blog/codex-as-a-platform)，访问日期 2026-10-30，仅用于 harness 术语与职责说明。
@@ -2048,7 +2462,7 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 
 ## 第二版的定位
 
-本版为 2.0.0，研究日期沿用 2026-10-30 的固定源码快照。第一版按项目分别分析；第二版按 AI Coding Agent 的设计与实现问题重写，补充核心接口、状态机、数据结构、算法、故障时序和可运行内核。旧版 EPUB 仍可在 v1.0.0 Release 获取，不将旧内容伪装成已完成本次改版。
+本次增订为 2.1.0，研究日期沿用 2026-10-30 的固定源码快照。第一版按项目分别分析；第二版按 AI Coding Agent 的设计与实现问题重写，补充核心接口、状态机、数据结构、算法、故障时序和可运行内核。2.1.0 增补源码驱动的任务流程、Tool/Skill/MCP 机制、四套压缩实现与取舍比较，并把证据索引扩展至 85 个文件。旧版 EPUB 仍可在对应历史 Release 获取。
 
 ## 源码与可运行实现的关系
 

@@ -1,8 +1,8 @@
 {
-  "edition": "2.0.0",
+  "edition": "2.1.0",
   "title": "AI Coding Agent 设计与实现",
   "research_date": "2026-10-30",
-  "epub_sha256": "c42ae12acfe974c6c74f03b81ef385642f93a076c5cd5e68c32713d18df9f8ca",
+  "epub_sha256": "10d91f37b0e63a79d0156828455b6b7f22c762c8de049b5f9884a281271202d4",
   "reference_kernel": {
     "command": "python3 -m unittest reference_agent.test_core -v",
     "tests": 18,
@@ -13,11 +13,6 @@
     "tests": 10,
     "failures": 0
   },
-  "cli_smokes": [
-    "completed normal task",
-    "injected crash after edit",
-    "reopened task refuses unsafe replay"
-  ],
   "epubcheck": {
     "version": "5.4.0",
     "fatal": 0,
@@ -32,5 +27,20 @@
   },
   "model_mode": "deterministic replaceable fixture model; no live provider API invoked",
   "upstream_products_built_or_executed": false,
-  "real_model_cross_product_benchmark": false
+  "real_model_cross_product_benchmark": false,
+  "evidence_files": 85,
+  "cli_smokes_from_edition_2_0_0": [
+    "completed normal task",
+    "injected crash after edit",
+    "reopened task refuses unsafe replay"
+  ],
+  "revision_checks": [
+    "structural validation",
+    "EPUBCheck 5.4.0",
+    "18 reference kernel tests",
+    "10 fault lab tests",
+    "reader JavaScript syntax",
+    "desktop and mobile browser QA",
+    "all four revised chapters at 390px"
+  ]
 }

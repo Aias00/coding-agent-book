@@ -57,3 +57,19 @@ Harness 是模型周围的运行框架。Actor 是一个有序状态推进者。
 循环与步骤：〔C01〕〔C02〕〔D02〕〔P01〕〔A03〕。工具与调度：〔C03〕〔C05〕〔C06〕〔D03〕〔D05〕〔P02〕〔A04〕〔A05〕。上下文与恢复：〔C08〕〔C09〕〔D04〕〔D07〕〔D11〕〔P05〕〔P06〕〔P12〕〔A07〕〔A10〕。插件与权限：〔D09〕〔D14〕〔D15〕〔P09〕〔P10〕〔A06〕〔A11〕。
 
 先明确要实现的约束，再看对应文件的接口、调用点、失败分支和测试。这样能够学到可迁移的设计，而不仅是记住当前目录布局。
+
+## 增订专题的函数地图
+
+| 问题 | 源码入口 | 证据 |
+|---|---|---|
+| Skill 目录怎样暴露给模型 | Pi formatSkillsForPrompt；DeepSeek tool-skill pre-step | 〔P19〕〔D23〕 |
+| Skill 来源和范围怎样合并 | DeepSeek SkillRegistry | 〔D24〕 |
+| MCP 工具怎样转成普通工具 | DeepSeek syncTools、createMcpToolDefinition | 〔D27〕 |
+| MCP 连接和初始发现谁管理 | DeepSeek mcp-client.apply | 〔D25〕 |
+| 直接、延迟和程序入口怎样选择 | Pi McpExposure；Codex spec_plan | 〔P20〕〔C11〕 |
+| 压缩什么时候发生 | Pi shouldCompact；DeepSeek compactIfNeeded；Claude shouldAutoCompact | 〔P06〕〔D19〕〔A07〕 |
+| 摘要是否更小、历史是否仍兼容 | DeepSeek summarizeCompaction、稳定性检查 | 〔D21〕 |
+| 服务端压缩与窗口重置怎样区分 | Codex run_auto_compact 的分支 | 〔C01〕〔C17〕〔C19〕 |
+| 压缩后怎样恢复 Skill 与 MCP 指令 | Claude compactConversation | 〔A09〕 |
+
+第 15 章比较的是这些可检查的客户端设计。摘要准确率、实际费用和真实任务成功率没有统一实验依据，不提供数值排名。

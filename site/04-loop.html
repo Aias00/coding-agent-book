@@ -1,20 +1,77 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 68 项源码依据。">
+<meta name="description" content="架构、核心机制与关键工程细节——以 Codex、DeepSeek Harness、Pi 和 Claude Code 为参考。24 章设计方案、可运行参考内核、28 项机制测试与 85 项源码依据。">
 <meta name="color-scheme" content="light dark"><title>第 4 章 执行内核：输入认领、模型步与停止条件 · AI Coding Agent 设计与实现</title>
 <link rel="canonical" href="https://aias00.github.io/coding-agent-book/04-loop.html"><link rel="stylesheet" href="assets/reader.css">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><script src="assets/reader.js" defer></script></head>
-<body data-chapter="04-loop" data-edition="2.0.0"><a class="skip" href="#main">跳到正文</a>
+<body data-chapter="04-loop" data-edition="2.1.0"><a class="skip" href="#main">跳到正文</a>
 <header class="topbar"><button id="menu-button" aria-controls="sidebar" aria-expanded="false">目录</button>
 <a class="brand" href="index.html">AI CODING AGENT <span>设计与实现</span></a>
 <div class="tools"><button id="search-button" aria-label="搜索全书">搜索</button><button id="font-down" aria-label="缩小字号">A−</button><button id="font-up" aria-label="放大字号">A+</button><button id="theme-button" aria-label="切换明暗主题">明暗</button><a href="downloads/coding-agent-engineering.epub" download>EPUB ↓</a></div></header>
-<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html" aria-current="page">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：边界、结构化摘要与失败恢复</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
-<div class="sidebar-footer"><span>第 2.0.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
+<aside id="sidebar"><a class="book-home" href="index.html">架构、机制与关键工程细节</a><nav aria-label="全书目录"><p class="nav-group">序言 · 从需求走向实现</p><ul><li><a href="00-preface.html">序言：设计一套能够交付代码的 Agent</a></li></ul><p class="nav-group">第一篇 · 总体架构与执行内核</p><ul><li><a href="01-requirements.html">第 1 章 需求建模：Agent 到底要交付什么</a></li><li><a href="02-architecture.html">第 2 章 总体架构：控制面、执行面与事实存储</a></li><li><a href="03-domain.html">第 3 章 领域模型：身份、版本与必须成立的不变量</a></li><li><a href="04-loop.html" aria-current="page">第 4 章 执行内核：输入认领、模型步与停止条件</a></li></ul><p class="nav-group">第二篇 · 模型协议与工具调度</p><ul><li><a href="05-model-adapter.html">第 5 章 模型适配层：统一语义，显式保留差异</a></li><li><a href="06-streaming.html">第 6 章 流式协议：字节、内容块与可执行行动</a></li><li><a href="07-tool-contract.html">第 7 章 工具协议：声明、校验、授权与结果终结</a></li><li><a href="08-scheduling.html">第 8 章 调度设计：有界并发、独占屏障与稳定历史</a></li></ul><p class="nav-group">第三篇 · 工作区、进程与权限</p><ul><li><a href="09-filesystem.html">第 9 章 文件系统工具：路径约束与乐观并发修改</a></li><li><a href="10-terminal.html">第 10 章 命令执行：进程树、输出游标与后台任务</a></li><li><a href="11-approvals.html">第 11 章 授权与审批：批准的必须是将要执行的行动</a></li><li><a href="12-sandbox.html">第 12 章 执行隔离：文件、网络、身份与不可信仓库</a></li></ul><p class="nav-group">第四篇 · 上下文与代码理解</p><ul><li><a href="13-context.html">第 13 章 上下文构造：把窗口当作有预算的工作集</a></li><li><a href="14-retrieval.html">第 14 章 代码理解：搜索、符号、LSP 与证据失效</a></li><li><a href="15-compaction.html">第 15 章 上下文压缩：四份源码的实现、边界与取舍</a></li></ul><p class="nav-group">第五篇 · 持久化、恢复与并发</p><ul><li><a href="16-persistence.html">第 16 章 持久化：事务边界决定恢复能力</a></li><li><a href="17-recovery.html">第 17 章 故障恢复：未知结果、幂等与重放政策</a></li><li><a href="18-concurrency.html">第 18 章 会话并发：单写者、租约、输入队列与分支</a></li></ul><p class="nav-group">第六篇 · 扩展、协作与产品化</p><ul><li><a href="19-extension.html">第 19 章 扩展机制：依赖注入、生命周期与协议版本</a></li><li><a href="20-multi-agent.html">第 20 章 多 Agent：分工、权限继承与结果整合</a></li><li><a href="21-interfaces.html">第 21 章 产品接口：CLI、IDE、Web 与人机协作</a></li><li><a href="22-observability.html">第 22 章 可观测性与评测：把失败归到正确模块</a></li></ul><p class="nav-group">第七篇 · 参考实现与交付</p><ul><li><a href="23-reference.html">第 23 章 参考实现：一个真正由模型响应驱动的内核</a></li><li><a href="24-delivery.html">第 24 章 交付路线：从可运行内核到可维护产品</a></li></ul><p class="nav-group">附录 · 接口速查与源码依据</p><ul><li><a href="25-glossary.html">附录 A 接口速查、参数起点与设计自检</a></li><li><a href="26-sources.html">附录 B 源码快照与证据索引</a></li><li><a href="27-colophon.html">附录 C 版本、构建与实现边界</a></li></ul></nav>
+<div class="sidebar-footer"><span>第 2.1.0 版 · 2026-10-30</span><a href="https://github.com/Aias00/coding-agent-book">GitHub · 书稿与实验 ↗</a></div></aside>
 <main id="main" tabindex="-1"><article><section id="第-4-章-执行内核输入认领模型步与停止条件" class="level1">
 <h1>第 4 章 执行内核：输入认领、模型步与停止条件</h1>
+<section id="从用户任务到交付业务流程与循环的对应" class="level2">
+<h2>从用户任务到交付：业务流程与循环的对应</h2>
+<p>本节是依据几份源码归纳的业务流程，不是它们共同采用的一套状态枚举。需求确认、代码调查和验证，可以由多次模型请求与工具调用共同完成；简单任务也可以合并阶段。应该把业务阶段与底层模型 step 分开理解。</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>业务阶段</th>
+<th>Agent 要做什么</th>
+<th>进入下一阶段的依据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>接收和理解任务</td>
+<td>确定目标、允许范围、验收条件</td>
+<td>有足够信息形成可执行下一步</td>
+</tr>
+<tr>
+<td>调查项目</td>
+<td>读取项目规则、搜索实现、核对测试和文件状态</td>
+<td>有可引用的代码与错误证据</td>
+</tr>
+<tr>
+<td>确定方案</td>
+<td>选择修改位置与验证方法</td>
+<td>修改与验证计划符合任务范围</td>
+</tr>
+<tr>
+<td>实施</td>
+<td>模型提出行动，运行时校验并执行工具</td>
+<td>取得实际工具结果，继续调整</td>
+</tr>
+<tr>
+<td>验证</td>
+<td>检查 diff，执行定向测试和必要回归</td>
+<td>当前代码版本满足约定条件</td>
+</tr>
+<tr>
+<td>交付</td>
+<td>报告改动、检查范围、未完成项</td>
+<td>完成、部分完成或明确阻塞</td>
+</tr>
+</tbody>
+</table>
+<p>以路径校验修复为例：用户输入被接纳后，模型先请求搜索和读取；工具返回文件与测试；模型据此提出编辑；编辑前核对文件版本与权限；结果进入下一次模型请求；模型请求验证；实际测试失败则返回修改循环，满足条件才交付。这里每一次“据此”都应有已接纳的输入或工具结果支撑。</p>
+<p>源码中的公共执行骨架可以这样追踪：Codex 在 <code>run_turn()</code> 里组织采样、工具 future、待处理输入和停止 hook；Pi 的 <code>runLoop()</code> 在内层处理工具及 steering，在自然工作将结束时再检查 follow-up；DeepSeek 的 AgentLoop 以 turn/step、输入认领和请求准备推进；Claude Code 的 <code>queryLoop()</code> 维护跨轮状态，处理模型输出、工具和后续转换。它们说明业务阶段要落实到可观察执行过程，而非让 UI 仅凭一段助手文字判断进度。<a href="26-sources.html#evidence-c01">C01</a><a href="26-sources.html#evidence-p01">P01</a><a href="26-sources.html#evidence-d02">D02</a><a href="26-sources.html#evidence-a03">A03</a></p>
+</section>
+<section id="业务分支暂停纠正与结果未知" class="level2">
+<h2>业务分支：暂停、纠正与结果未知</h2>
+<p>缺少信息时暂停依赖该信息的行动；缺少权限时进入待决授权；用户纠正先保存为输入，再在定义好的边界改变后续计划。工具失败后，模型可以根据具体错误继续调查，但权限拒绝不能自动变成提权重试。</p>
+<p>取消或预算耗尽时，应停止新增工作并说明已经发生的效果。崩溃后缺少工具结果时，先按持久调用状态恢复，不能仅因聊天里没有成功文本就重跑。上述终态和验收条件是本书的设计建议；各项目实际取消、重试和停止行为，分别以本章后续调用路径及第 17 章为准。</p>
+</section>
 <section id="将主循环写成状态机" class="level2">
 <h2>将主循环写成状态机</h2>
-<p>建议状态为 idle、preparing、generating、executing、awaiting_approval、stopping 和 terminal。状态机拥有会话写权限，工具与模型回调通过消息投递结果。每个状态允许的输入不同：generating 可以接收取消与新输入，awaiting_approval 可以接收审批响应，terminal 不能再偷偷启动工具。</p>
+<p>建议状态为 idle、preparing、generating、executing、settling、awaiting_approval、stopping 和 terminal。状态机拥有会话写权限，工具与模型回调通过消息投递结果。每个状态允许的输入不同：generating 可以接收取消与新输入，awaiting_approval 可以接收审批响应，terminal 不能再偷偷启动工具。</p>
 <figure>
 <img src="assets/state-machine.svg" alt="正常回合与取消收敛的状态交接。" />
 <figcaption aria-hidden="true">正常回合与取消收敛的状态交接。</figcaption>

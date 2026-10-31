@@ -1,5 +1,5 @@
 {
-  "edition": "1.0.0",
+  "edition": "2.1.0",
   "review_date": "2026-10-30",
   "projects": {
     "codex": {
@@ -185,6 +185,56 @@
       "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/LICENSE#L1"
     },
     {
+      "id": "C17",
+      "project": "codex",
+      "path": "codex-rs/core/src/compact_remote_v2.rs",
+      "sha256": "cb81ae523a2d3674ffe0acd12a492431d773e1148a420bbd99850b9081277673",
+      "lines": 1353,
+      "locator": "fn build_v2_compacted_history",
+      "line": 480,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_remote_v2.rs#L480"
+    },
+    {
+      "id": "C18",
+      "project": "codex",
+      "path": "codex-rs/core/src/compact_remote_v2_installation.rs",
+      "sha256": "51bc95908de2153856836f931b25deed831c5e2c3ab13a3dc35231da3a0ae0be",
+      "lines": 299,
+      "locator": "candidate.model_info.slug",
+      "line": 86,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_remote_v2_installation.rs#L86"
+    },
+    {
+      "id": "C19",
+      "project": "codex",
+      "path": "codex-rs/core/src/compact_token_budget.rs",
+      "sha256": "49682d338de201896ee122e36b16dc62072ce791c4acea52c7c0a6b615e6e20f",
+      "lines": 69,
+      "locator": "sess.start_new_context_window",
+      "line": 58,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/compact_token_budget.rs#L58"
+    },
+    {
+      "id": "C20",
+      "project": "codex",
+      "path": "codex-rs/core/src/session/async_compaction.rs",
+      "sha256": "275a1ea41773da9644e9f03d41548fed92cf4ad8891a0b4fcd61675ff64ef909",
+      "lines": 222,
+      "locator": "candidate.prefix.generation",
+      "line": 162,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/core/src/session/async_compaction.rs#L162"
+    },
+    {
+      "id": "C21",
+      "project": "codex",
+      "path": "codex-rs/protocol/src/models.rs",
+      "sha256": "753498bc730ba21ded710d9aa2b2f9163e6bbe4eaa18f1c25d998c36138a54f7",
+      "lines": 4757,
+      "locator": "    Compaction {",
+      "line": 1296,
+      "url": "https://github.com/openai/codex/blob/57d4fac64adbcaed0523ca6bf8d58c4ef6875157/codex-rs/protocol/src/models.rs#L1296"
+    },
+    {
       "id": "D01",
       "project": "deepseek-harness",
       "path": "docs/architecture.md",
@@ -363,6 +413,96 @@
       "locator": "file",
       "line": 1,
       "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/llm/llm-pi-ai/README.md#L1"
+    },
+    {
+      "id": "D19",
+      "project": "deepseek-harness",
+      "path": "packages/compaction/compaction-basic/src/index.ts",
+      "sha256": "c298756c1d06a24593dc573e08f337f7f012675bcfaa675edb7d5368b19649f6",
+      "lines": 452,
+      "locator": "class BasicCompactionEngine",
+      "line": 113,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/index.ts#L113"
+    },
+    {
+      "id": "D20",
+      "project": "deepseek-harness",
+      "path": "packages/compaction/compaction-basic/src/config.ts",
+      "sha256": "4972edc6447dcff87eab54c3a9c5984171238aa06aa0eb34ffde4bfac4ce1275",
+      "lines": 362,
+      "locator": "function resolveCompactSpec",
+      "line": 153,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/config.ts#L153"
+    },
+    {
+      "id": "D21",
+      "project": "deepseek-harness",
+      "path": "packages/compaction/compaction-basic/src/region.ts",
+      "sha256": "295b53cc9e924f7cb2e843e0d0d296e89ead73da2aab9790282db30736e2e063",
+      "lines": 600,
+      "locator": "function selectCompactableRange",
+      "line": 117,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/region.ts#L117"
+    },
+    {
+      "id": "D22",
+      "project": "deepseek-harness",
+      "path": "packages/compaction/compaction-basic/src/summarizer.ts",
+      "sha256": "03ef6eb0b6a011530829820e30ff709c2c1b34cfa37a98c19c0037432b9d2f55",
+      "lines": 221,
+      "locator": "function summarizeWithLlm",
+      "line": 120,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/compaction/compaction-basic/src/summarizer.ts#L120"
+    },
+    {
+      "id": "D23",
+      "project": "deepseek-harness",
+      "path": "packages/skill/tool-skill/src/index.ts",
+      "sha256": "29f6cf10c7247379298d9a96a53aef9cb2b21dcf7266f57ab147860b27d7cc44",
+      "lines": 433,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/skill/tool-skill/src/index.ts#L1"
+    },
+    {
+      "id": "D24",
+      "project": "deepseek-harness",
+      "path": "packages/skill/skill/src/index.ts",
+      "sha256": "af4fad67fb086c3f5c93aed4604830718b4535e7e59a60d680404b07ea08477c",
+      "lines": 868,
+      "locator": "class SkillRegistry",
+      "line": 356,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/skill/skill/src/index.ts#L356"
+    },
+    {
+      "id": "D25",
+      "project": "deepseek-harness",
+      "path": "packages/mcp/mcp-client/src/index.ts",
+      "sha256": "f279bd88743ca73b0d9834915d1bb31e455e21c87f4990808cfd55b273db4d1c",
+      "lines": 203,
+      "locator": "async function apply",
+      "line": 154,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/index.ts#L154"
+    },
+    {
+      "id": "D26",
+      "project": "deepseek-harness",
+      "path": "packages/mcp/mcp-client/README.md",
+      "sha256": "346ad21f0c7f8bd7248a021513228769fcde1dec7065a3ea77e809f999805806",
+      "lines": 229,
+      "locator": "file",
+      "line": 1,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/README.md#L1"
+    },
+    {
+      "id": "D27",
+      "project": "deepseek-harness",
+      "path": "packages/mcp/mcp-client/src/tools.ts",
+      "sha256": "59203150bda479a990afcdaf60483a35a836887926892e1074e02d0294c01af9",
+      "lines": 511,
+      "locator": "async function syncTools",
+      "line": 113,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/blob/687f282e8625c6b8d11ff58211a90524be2e4317/packages/mcp/mcp-client/src/tools.ts#L113"
     },
     {
       "id": "P01",
@@ -545,6 +685,26 @@
       "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/modes/rpc/rpc-mode.ts#L1"
     },
     {
+      "id": "P19",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/skills.ts",
+      "sha256": "8dcc644dbabbb34238f609ecf191c0da370d74873ccaccaf3c3cd0e7703d9431",
+      "lines": 514,
+      "locator": "function formatSkillsForPrompt",
+      "line": 358,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/skills.ts#L358"
+    },
+    {
+      "id": "P20",
+      "project": "pi",
+      "path": "packages/coding-agent/src/core/mcp-servers.ts",
+      "sha256": "0aaad23b26f31f743bdd117754f4c871ea821279bf68f8ba5d71eccbb1602c6a",
+      "lines": 346,
+      "locator": "export type McpExposure",
+      "line": 52,
+      "url": "https://github.com/earendil-works/pi/blob/16f5f0af4d85ca583d045ceb5ed6d646fcaf7761/packages/coding-agent/src/core/mcp-servers.ts#L52"
+    },
+    {
       "id": "A01",
       "project": "ccsource",
       "path": "package/package.json",
@@ -714,6 +874,17 @@
       "lines": 551,
       "locator": "file",
       "line": 1,
+      "url": null,
+      "matches_embedded_source": true
+    },
+    {
+      "id": "A17",
+      "project": "ccsource",
+      "path": "package/src-extracted/src/services/compact/timeBasedMCConfig.ts",
+      "sha256": "aede0336973766a4ae25d2625156d3f9300736896ed4691b566e1c98472fd6f9",
+      "lines": 43,
+      "locator": "const TIME_BASED_MC_CONFIG_DEFAULTS",
+      "line": 30,
       "url": null,
       "matches_embedded_source": true
     }
